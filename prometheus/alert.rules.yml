@@ -1,0 +1,123 @@
+groups:
+- name: infra-alerts
+  rules:
+
+  # 1. Node Down (P1)
+  - alert: NodeDown
+    expr: up == 0
+    for: 1m
+    labels:
+      alertname: NodeDown
+      severity: critical
+      priority: P1
+    annotations:
+      summary: "Node Down on {{ $labels.instance }}"
+      description: "Instance is unreachable."
+
+  # 2. High CPU (P1)
+  - alert: HighCPUUsage
+    expr: 100 - (avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+    for: 2m
+    labels:
+      alertname: HighCPUUsage
+      severity: critical
+      priority: P1
+    annotations:
+      summary: "High CPU on {{ $labels.instance }}"
+      description: "CPU usage > 90%"
+
+  # 3. High Memory (P2)
+  - alert: HighMemoryUsage
+    expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+    for: 3m
+    labels:
+      alertname: HighMemoryUsage
+      severity: warning
+      priority: P2
+    annotations:
+      summary: "High Memory on {{ $labels.instance }}"
+      description: "Memory usage > 85%"
+
+  # 4. Disk Space Low (P1)
+  - alert: DiskSpaceLow
+    expr: (node_filesystem_avail_bytes{fstype!="tmpfs", mountpoint="/"} / node_filesystem_size_bytes{fstype!="tmpfs", mountpoint="/"}) * 100 < 15
+    for: 5m
+    labels:
+      alertname: DiskSpaceLow
+      severity: critical
+      priority: P1
+    annotations:
+      summary: "Disk Low on {{ $labels.instance }}"
+      description: "Disk space < 15%"
+
+  # 5. Inode Usage High (P2)
+  - alert: InodeUsageHigh
+    expr: (node_filesystem_files - node_filesystem_files_free) / node_filesystem_files * 100 > 85
+    for: 5m
+    labels:
+      alertname: InodeUsageHigh
+      severity: warning
+      priority: P2
+    annotations:
+      summary: "Inode usage high on {{ $labels.instance }}"
+      description: "Inode usage > 85%"
+
+  # 6. High Load (P3)
+  - alert: HighLoad
+    expr: node_load1 > 2
+    for: 3m
+    labels:
+      alertname: HighLoad
+      severity: low
+      priority: P3
+    annotations:
+      summary: "High Load on {{ $labels.instance }}"
+      description: "Load average high"
+
+  # 7. Disk I/O High (P2)
+  - alert: DiskIOHigh
+    expr: rate(node_disk_io_time_seconds_total[5m]) > 0.8
+    for: 5m
+    labels:
+      alertname: DiskIOHigh
+      severity: warning
+      priority: P2
+    annotations:
+      summary: "Disk I/O high on {{ $labels.instance }}"
+      description: "Disk latency high"
+
+  # 8. Network Spike (P2)
+  - alert: NetworkSpike
+    expr: rate(node_network_receive_bytes_total{device!="lo"}[1m]) > 100000000
+    for: 2m
+    labels:
+      alertname: NetworkSpike
+      severity: warning
+      priority: P2
+    annotations:
+      summary: "Network spike on {{ $labels.instance }}"
+      description: "High traffic detected"
+
+  # 9. Too Many Processes (P3)
+  - alert: TooManyProcesses
+    expr: node_procs_running > 300
+    for: 5m
+    labels:
+      alertname: TooManyProcesses
+      severity: low
+      priority: P3
+    annotations:
+      summary: "Too many processes on {{ $labels.instance }}"
+      description: "Process count high"
+
+  # 10. Swap Usage High (P2)
+  - alert: SwapUsageHigh
+    expr: node_memory_SwapTotal_bytes > 0 and ((node_memory_SwapTotal_bytes - node_memory_SwapFree_bytes) / node_memory_SwapTotal_bytes * 100 > 80)
+    for: 5m
+    labels:
+      alertname: SwapUsageHigh
+      severity: warning
+      priority: P2
+    annotations:
+      summary: "Swap usage high on {{ $labels.instance }}"
+      description: "Swap usage > 80%"
