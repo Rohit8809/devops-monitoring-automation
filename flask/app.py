@@ -2,10 +2,18 @@ from flask import Flask, request, jsonify
 import requests
 import json
 
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
 app = Flask(__name__)
 
-OSTICKET_URL = "http://192.168.56.10/api/tickets.json"
-API_KEY = "AFDDB0C29E2FF5F924E7BDDE5EB8DC2E"
+OSTICKET_URL = os.getenv("OSTICKET_URL")
+API_KEY = os.getenv("API_KEY")
+
+SENDER_EMAIL = os.getenv("SENDER_EMAIL")
+SOURCE_IP = os.getenv("SOURCE_IP")
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -155,12 +163,12 @@ Grafana | Prometheus | osTicket
 """
 
         payload = {
-            "name": "Grafana Monitoring",
-            "email": "devopstestalert@gmail.com",
-            "subject": subject,
-            "message": message,
-            "ip": "192.168.56.10"
-        }
+                "name": "Grafana Monitoring",
+                "email": SENDER_EMAIL,
+                "subject": subject,
+                "message": message,
+                "ip": SOURCE_IP
+                }
 
         headers = {
             "X-API-Key": API_KEY,
