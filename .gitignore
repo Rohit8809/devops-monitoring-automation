@@ -3,3 +3,4 @@ flask.log
 __pycache__/
 *.pyc
 .env
+backups/
