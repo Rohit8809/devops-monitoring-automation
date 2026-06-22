@@ -26,3 +26,31 @@ services:
       - /opt/alert_middleware/prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml
 
     restart: unless-stopped
+
+  grafana:
+
+    image: grafana/grafana
+
+    container_name: grafana-container
+
+    ports:
+      - "3001:3000"
+
+    restart: unless-stopped
+
+
+  alertmanager:
+
+    image: prom/alertmanager
+
+    container_name: alertmanager-container
+
+    ports:
+      - "9095:9093"
+
+    volumes:
+      - /opt/alert_middleware/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+
+    restart: unless-stopped
+
+
