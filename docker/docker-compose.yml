@@ -1,5 +1,4 @@
 services:
-
   flask:
     build:
       context: ../flask
@@ -7,6 +6,10 @@ services:
     container_name: flask-container
     ports:
       - "5001:5000"
+    env_file:
+      - ../flask/.env
+    environment:
+      - PYTHONUNBUFFERED=1
     restart: unless-stopped
 
   prometheus:
@@ -39,5 +42,34 @@ services:
     image: prom/node-exporter
     container_name: node-exporter-container
     ports:
-     - "9101:9100"
+      - "9101:9100"
     restart: unless-stopped
+
+  osticket-db:
+    image: mariadb:10.6
+    container_name: osticket-db-container
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: osticket
+      MYSQL_USER: osticket
+      MYSQL_PASSWORD: osticketpassword
+    volumes:
+      - osticket-db-data:/var/lib/mysql
+    restart: unless-stopped
+
+  osticket:
+    image: campbellsoftwaresolutions/osticket
+    container_name: osticket-container
+    ports:
+      - "8080:80"
+    environment:
+      MYSQL_HOST: osticket-db
+      MYSQL_DATABASE: osticket
+      MYSQL_USER: osticket
+      MYSQL_PASSWORD: osticketpassword
+    depends_on:
+      - osticket-db
+    restart: unless-stopped
+
+volumes:
+  osticket-db-data:
