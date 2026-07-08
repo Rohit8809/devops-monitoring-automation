@@ -12,7 +12,7 @@ groups:
       priority: P1
     annotations:
       summary: "Node Down on {{ $labels.instance }}"
-      description: "Instance is unreachable."
+      description: "Instance {{ $labels.instance }} is unreachable."
 
   # 2. High CPU (P1)
   - alert: HighCPUUsage
@@ -24,7 +24,7 @@ groups:
       priority: P1
     annotations:
       summary: "High CPU on {{ $labels.instance }}"
-      description: "CPU usage > 90%"
+      description: "CPU usage is above 90% on {{ $labels.instance }}."
 
   # 3. High Memory (P2)
   - alert: HighMemoryUsage
@@ -36,11 +36,11 @@ groups:
       priority: P2
     annotations:
       summary: "High Memory on {{ $labels.instance }}"
-      description: "Memory usage > 85%"
+      description: "Memory usage is above 85% on {{ $labels.instance }}."
 
   # 4. Disk Space Low (P1)
   - alert: DiskSpaceLow
-    expr: (node_filesystem_avail_bytes{fstype!="tmpfs", mountpoint="/"} / node_filesystem_size_bytes{fstype!="tmpfs", mountpoint="/"}) * 100 < 15
+    expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay", mountpoint="/"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay", mountpoint="/"}) * 100 < 15
     for: 5m
     labels:
       alertname: DiskSpaceLow
@@ -48,11 +48,11 @@ groups:
       priority: P1
     annotations:
       summary: "Disk Low on {{ $labels.instance }}"
-      description: "Disk space < 15%"
+      description: "Disk space is below 15% on {{ $labels.instance }}."
 
   # 5. Inode Usage High (P2)
   - alert: InodeUsageHigh
-    expr: (node_filesystem_files - node_filesystem_files_free) / node_filesystem_files * 100 > 85
+    expr: (node_filesystem_files{fstype!~"tmpfs|overlay"} - node_filesystem_files_free{fstype!~"tmpfs|overlay"}) / node_filesystem_files{fstype!~"tmpfs|overlay"} * 100 > 85
     for: 5m
     labels:
       alertname: InodeUsageHigh
@@ -60,7 +60,7 @@ groups:
       priority: P2
     annotations:
       summary: "Inode usage high on {{ $labels.instance }}"
-      description: "Inode usage > 85%"
+      description: "Inode usage is above 85% on {{ $labels.instance }}."
 
   # 6. High Load (P3)
   - alert: HighLoad
@@ -72,7 +72,7 @@ groups:
       priority: P3
     annotations:
       summary: "High Load on {{ $labels.instance }}"
-      description: "Load average high"
+      description: "Load average is high on {{ $labels.instance }}."
 
   # 7. Disk I/O High (P2)
   - alert: DiskIOHigh
@@ -84,7 +84,7 @@ groups:
       priority: P2
     annotations:
       summary: "Disk I/O high on {{ $labels.instance }}"
-      description: "Disk latency high"
+      description: "Disk I/O wait is high on {{ $labels.instance }}."
 
   # 8. Network Spike (P2)
   - alert: NetworkSpike
@@ -96,7 +96,7 @@ groups:
       priority: P2
     annotations:
       summary: "Network spike on {{ $labels.instance }}"
-      description: "High traffic detected"
+      description: "High network traffic detected on {{ $labels.instance }}."
 
   # 9. Too Many Processes (P3)
   - alert: TooManyProcesses
@@ -108,7 +108,7 @@ groups:
       priority: P3
     annotations:
       summary: "Too many processes on {{ $labels.instance }}"
-      description: "Process count high"
+      description: "Running process count is high on {{ $labels.instance }}."
 
   # 10. Swap Usage High (P2)
   - alert: SwapUsageHigh
@@ -120,4 +120,4 @@ groups:
       priority: P2
     annotations:
       summary: "Swap usage high on {{ $labels.instance }}"
-      description: "Swap usage > 80%"
+      description: "Swap usage is above 80% on {{ $labels.instance }}."

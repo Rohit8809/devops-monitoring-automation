@@ -1,17 +1,30 @@
+from datetime import datetime
 from flask import Flask, request, jsonify
 import requests
 import json
 from dotenv import load_dotenv
 import os
 
-# ADDED: import test email function from separate email service file
-from email_service import send_email, SUPPORT_EMAILS, CLIENT_EMAILS, SUPPORT_PHONE, SERVICE_NAME, ENVIRONMENT
+from email_service import (
+    send_email,
+    SUPPORT_EMAILS,
+    CLIENT_EMAILS,
+    SUPPORT_PHONE,
+    SERVICE_NAME,
+    ENVIRONMENT
+)
+
+from decision_engine import (
+    is_duplicate,
+    register_incident,
+    update_duplicate,
+    close_incident
+)
 
 load_dotenv()
 
 app = Flask(__name__)
 
-# osTicket configuration
 OSTICKET_URL = os.getenv("OSTICKET_URL")
 API_KEY = os.getenv("API_KEY")
 SENDER_EMAIL = os.getenv("SENDER_EMAIL")
@@ -20,7 +33,6 @@ SOURCE_IP = os.getenv("SOURCE_IP")
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-
     data = request.json
 
     print("========== ALERT RECEIVED ==========")
@@ -33,21 +45,51 @@ def webhook():
             alert_name = alert.get('labels', {}).get('alertname', 'Unknown Alert')
             server = alert.get('labels', {}).get('instance', 'Unknown Server')
             severity = alert.get('labels', {}).get('severity', 'warning')
+            priority = alert.get('labels', {}).get('priority', 'P3')
             status = alert.get('status', 'firing')
+            summary = alert.get('annotations', {}).get('summary', 'No summary')
+            description = alert.get('annotations', {}).get('description', 'No description')
+            start_time = alert.get('startsAt', 'Unknown')
+
         else:
             alert_name = data.get('title', 'Datasource Alert')
             server = "Grafana"
             severity = "critical"
+            priority = "P1"
             status = data.get('status', 'firing')
+            summary = "Grafana datasource alert"
+            description = "Grafana datasource alert triggered"
+            start_time = "Unknown"
 
         print(f"Alert Name: {alert_name}")
         print(f"Server: {server}")
         print(f"Severity: {severity}")
+        print(f"Priority: {priority}")
         print(f"Status: {status}")
 
         if status == "resolved":
-            print("Resolved alert ignored")
-            return jsonify({"status": "resolved ignored"}), 200
+            close_incident(alert_name, server)
+            print(f"Incident closed in Decision Engine: {alert_name} | {server}")
+
+            return jsonify({
+                "status": "resolved ignored"
+            }), 200
+
+        if is_duplicate(alert_name, server):
+            existing = update_duplicate(alert_name, server)
+
+            print("===================================")
+            print("Duplicate Incident Detected")
+            print(f"Existing Ticket : {existing['ticket_number']}")
+            print(f"Occurrences     : {existing['occurrence_count']}")
+            print(f"Last Seen       : {existing['last_seen']}")
+            print("===================================")
+
+            return jsonify({
+                "status": "duplicate ignored",
+                "existing_ticket": existing["ticket_number"],
+                "occurrences": existing["occurrence_count"]
+            }), 200
 
         subject = f"[{severity.upper()}] {alert_name}"
 
@@ -57,10 +99,14 @@ INCIDENT CREATED AUTOMATICALLY
 Alert Name : {alert_name}
 Server     : {server}
 Severity   : {severity.upper()}
+Priority   : {priority}
 Status     : {status.upper()}
 
+Summary:
+{summary}
+
 Description:
-Infrastructure alert triggered from Prometheus/Alertmanager.
+{description}
 
 Recommended Actions:
 1. Check node-exporter container status.
@@ -98,10 +144,16 @@ Prometheus | Alertmanager | Flask | osTicket
         print("Ticket Response:", response.text)
 
         ticket_number = response.text.strip()
-        priority = alert.get('labels', {}).get('priority', 'P3')
-        summary = alert.get('annotations', {}).get('summary', 'No summary')
-        description = alert.get('annotations', {}).get('description', 'No description')
-        start_time = alert.get('startsAt', 'Unknown')
+
+        register_incident(
+            alert_name,
+            server,
+            ticket_number,
+            severity,
+            priority
+        )
+
+        print(f"Incident registered in Decision Engine: {ticket_number}")
 
         support_subject = f"[{priority}][{severity.upper()}][{ticket_number}] {alert_name} | {server} | Immediate Action Required"
 
@@ -140,7 +192,7 @@ Phone : {SUPPORT_PHONE}
 Generated Automatically,
 Enterprise Incident Management Platform
 """
-
+        generated_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         client_subject = f"[{ticket_number}][{severity.upper()}] Incident Created - {SERVICE_NAME}"
 
         client_body = f"""
@@ -152,8 +204,12 @@ Our monitoring platform has automatically created an incident and our engineerin
 
 Incident Number : {ticket_number}
 Severity        : {severity.upper()}
+Alert Name      : {alert_name}
+Server          : {server}
 Affected Service: {SERVICE_NAME}
+Environment     : {ENVIRONMENT}
 Detected At     : {start_time}
+Generated At    : {generated_time}
 Current Status  : Investigation In Progress
 
 There is no action required from your side at this time.
@@ -175,16 +231,6 @@ Operations Team
         print("Error:", e)
 
     return jsonify({"status": "success"}), 200
-
-
-# ADDED: temporary endpoint to test Gmail SMTP before connecting email to incidents
-@app.route('/test-email')
-def test_email():
-    try:
-        send_test_email()
-        return "Test email sent successfully."
-    except Exception as e:
-        return f"Error: {e}"
 
 
 @app.route('/')

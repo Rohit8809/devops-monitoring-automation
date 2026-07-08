@@ -16,3 +16,11 @@ scrape_configs:
     static_configs:
       - targets:
           - node-exporter:9100
+
+  - job_name: "enterprise-servers"
+    static_configs:
+      - targets:
+          - web-server:9100
+          - app-server:9100
+          - db-server:9100
+          - monitoring-server:9100

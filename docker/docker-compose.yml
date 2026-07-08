@@ -12,7 +12,7 @@ services:
       - PYTHONUNBUFFERED=1
     networks:
       incident-net:
-        ipv4_address: 172.30.0.10
+        ipv4_address: 172.30.0.50
     restart: unless-stopped
 
   prometheus:
@@ -52,6 +52,42 @@ services:
     container_name: node-exporter-container
     ports:
       - "9101:9100"
+    networks:
+      - incident-net
+    restart: unless-stopped
+
+  web-server:
+    image: prom/node-exporter:latest
+    container_name: web-server
+    ports:
+      - "9102:9100"
+    networks:
+      - incident-net
+    restart: unless-stopped
+
+  app-server:
+    image: prom/node-exporter:latest
+    container_name: app-server
+    ports:
+      - "9103:9100"
+    networks:
+      - incident-net
+    restart: unless-stopped
+
+  db-server:
+    image: prom/node-exporter:latest
+    container_name: db-server
+    ports:
+      - "9104:9100"
+    networks:
+      - incident-net
+    restart: unless-stopped
+
+  monitoring-server:
+    image: prom/node-exporter:latest
+    container_name: monitoring-server
+    ports:
+      - "9105:9100"
     networks:
       - incident-net
     restart: unless-stopped
