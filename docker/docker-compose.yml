@@ -57,10 +57,23 @@ services:
     restart: unless-stopped
 
   web-server:
-    image: prom/node-exporter:latest
-    container_name: web-server
+    image: httpd:2.4
+    container_name: web-server-container
     ports:
-      - "9102:9100"
+      - "8081:80"
+    networks:
+      - incident-net
+    restart: unless-stopped
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:latest
+    container_name: blackbox-exporter-container
+    ports:
+      - "9115:9115"
+    volumes:
+      - ../blackbox/blackbox.yml:/etc/blackbox_exporter/config.yml
+    command:
+      - "--config.file=/etc/blackbox_exporter/config.yml"
     networks:
       - incident-net
     restart: unless-stopped
