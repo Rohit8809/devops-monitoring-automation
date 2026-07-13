@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Rinktech Incident Management Dashboard</title>
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/dashboard.css') }}"
+    >
+</head>
+
+<body>
+
+<div class="d-flex">
+
+    <aside class="sidebar p-3">
+        <h4 class="text-white mb-4">
+            <i class="bi bi-shield-check"></i>
+            Dashboard
+        </h4>
+
+        <nav class="nav flex-column">
+            <a class="nav-link active" href="/dashboard">
+                <i class="bi bi-grid"></i>
+                Dashboard
+            </a>
+
+            <a class="nav-link" href="#">
+                <i class="bi bi-exclamation-triangle"></i>
+                Incidents
+            </a>
+
+            <a class="nav-link" href="#">
+                <i class="bi bi-server"></i>
+                Servers
+            </a>
+
+            <a class="nav-link" href="#">
+                <i class="bi bi-box"></i>
+                Containers
+            </a>
+
+            <a class="nav-link" href="#">
+                <i class="bi bi-graph-up"></i>
+                Monitoring
+            </a>
+
+            <a class="nav-link" href="#">
+                <i class="bi bi-ticket-perforated"></i>
+                Tickets
+            </a>
+
+            <a class="nav-link" href="#">
+                <i class="bi bi-terminal"></i>
+                Logs
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main-content flex-grow-1">
+
+        <header class="topbar d-flex justify-content-between align-items-center px-4">
+            <div>
+                <h5 class="mb-0">Rinktech Incident Management</h5>
+                <small class="text-secondary">
+                    Operations dashboard
+                </small>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-bell fs-5"></i>
+                <span class="fw-semibold">Rohit Kumar</span>
+            </div>
+        </header>
+
+        <div class="container-fluid p-4">
+
+            <div class="mb-4">
+                <h2>Dashboard</h2>
+                <p class="text-secondary mb-0">
+                    TEST CHANGE FROM CONTAINER
+                </p>
+            </div>
+
+            <div class="row g-4 mb-4">
+
+                <div class="col-md-6 col-xl-3">
+                    <div class="card summary-card shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <p class="text-secondary mb-1">Total Services</p>
+                                    <h2 class="mb-0">5</h2>
+                                </div>
+                                <i class="bi bi-server summary-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-xl-3">
+                    <div class="card summary-card shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <p class="text-secondary mb-1">Healthy</p>
+                                    <h2 class="mb-0 text-success">5</h2>
+                                </div>
+                                <i class="bi bi-check-circle summary-icon text-success"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-xl-3">
+                    <div class="card summary-card shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <p class="text-secondary mb-1">Critical</p>
+                                    <h2 class="mb-0 text-danger">0</h2>
+                                </div>
+                                <i class="bi bi-exclamation-octagon summary-icon text-danger"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-xl-3">
+                    <div class="card summary-card shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <p class="text-secondary mb-1">Open Incidents</p>
+                                    <h2 class="mb-0 text-warning">0</h2>
+                                </div>
+                                <i class="bi bi-ticket-detailed summary-icon text-warning"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Service Health</h5>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Service</th>
+                                    <th>Endpoint</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <tr>
+                                    <td>Web Server</td>
+                                    <td>http://web-server:80</td>
+                                    <td>
+                                        <span class="badge text-bg-success">Running</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-danger">
+                                            Stop
+                                        </button>
+
+                                        <button class="btn btn-sm btn-outline-warning">
+                                            Restart
+                                        </button>
+
+                                        <button class="btn btn-sm btn-outline-dark">
+                                            Logs
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td>Application Server</td>
+                                    <td>http://app-server:5000/health</td>
+                                    <td>
+                                        <span class="badge text-bg-success">Running</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-danger">
+                                            Stop
+                                        </button>
+
+                                        <button class="btn btn-sm btn-outline-warning">
+                                            Restart
+                                        </button>
+
+                                        <button class="btn btn-sm btn-outline-dark">
+                                            Logs
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td>Database Server</td>
+                                    <td>db-server:9100</td>
+                                    <td>
+                                        <span class="badge text-bg-success">Running</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-danger">
+                                            Stop
+                                        </button>
+
+                                        <button class="btn btn-sm btn-outline-warning">
+                                            Restart
+                                        </button>
+
+                                        <button class="btn btn-sm btn-outline-dark">
+                                            Logs
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td>Monitoring Server</td>
+                                    <td>monitoring-server:9100</td>
+                                    <td>
+                                        <span class="badge text-bg-success">Running</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-danger">
+                                            Stop
+                                        </button>
+
+                                        <button class="btn btn-sm btn-outline-warning">
+                                            Restart
+                                        </button>
+
+                                        <button class="btn btn-sm btn-outline-dark">
+                                            Logs
+                                        </button>
+                                    </td>
+                                </tr>
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Quick Access</h5>
+                </div>
+
+                <div class="card-body d-flex flex-wrap gap-2">
+
+                    <a
+                        href="http://localhost:3001"
+                        target="_blank"
+                        class="btn btn-primary"
+                    >
+                        Open Grafana
+                    </a>
+
+                    <a
+                        href="http://localhost:9091"
+                        target="_blank"
+                        class="btn btn-outline-primary"
+                    >
+                        Open Prometheus
+                    </a>
+
+                    <a
+                        href="http://localhost:9095"
+                        target="_blank"
+                        class="btn btn-outline-secondary"
+                    >
+                        Open Alertmanager
+                    </a>
+
+                    <a
+                        href="http://localhost:8080"
+                        target="_blank"
+                        class="btn btn-outline-dark"
+                    >
+                        Open osTicket
+                    </a>
+
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+
+</body>
+</html>

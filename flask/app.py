@@ -1,5 +1,5 @@
 from datetime import datetime
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import requests
 import json
 from dotenv import load_dotenv
@@ -231,6 +231,10 @@ Operations Team
         print("Error:", e)
 
     return jsonify({"status": "success"}), 200
+
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html')
 
 
 @app.route('/')

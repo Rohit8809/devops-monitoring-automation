@@ -19,15 +19,14 @@ scrape_configs:
       - targets:
           - node-exporter:9100
 
-  # Simulated App, DB and Monitoring servers
+  # Remaining simulated infrastructure servers
   - job_name: "enterprise-servers"
     static_configs:
       - targets:
-          - app-server:9100
           - db-server:9100
           - monitoring-server:9100
 
-  # Blackbox monitoring for Apache Web Server
+  # HTTP availability monitoring
   - job_name: "blackbox-http"
     metrics_path: /probe
     params:
@@ -37,6 +36,7 @@ scrape_configs:
     static_configs:
       - targets:
           - http://web-server:80
+          - http://app-server:5000/health
 
     relabel_configs:
       - source_labels:

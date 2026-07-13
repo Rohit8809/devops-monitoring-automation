@@ -132,3 +132,15 @@ groups:
     annotations:
       summary: "Web server is unavailable"
       description: "Apache web server {{ $labels.instance }} is not responding to HTTP checks."    
+
+   # 12. App Server Down (P1)
+
+  - alert: AppServerDown
+    expr: probe_success{job="blackbox-http", instance="http://app-server:5000/health"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      priority: P1
+    annotations:
+      summary: "Application server is unavailable"
+      description: "Application health endpoint {{ $labels.instance }} is not responding."

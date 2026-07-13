@@ -12,6 +12,7 @@ import os
 load_dotenv()
 
 app = Flask(__name__)
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 # osTicket config
 OSTICKET_URL = os.getenv("OSTICKET_URL")

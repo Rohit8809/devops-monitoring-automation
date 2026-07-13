@@ -10,6 +10,8 @@ services:
       - ../flask/.env
     environment:
       - PYTHONUNBUFFERED=1
+    volumes:
+      - ../flask:/app
     networks:
       incident-net:
         ipv4_address: 172.30.0.50
@@ -79,10 +81,12 @@ services:
     restart: unless-stopped
 
   app-server:
-    image: prom/node-exporter:latest
-    container_name: app-server
+    build:
+      context: ../app-server
+    image: enterprise-app-server:v1
+    container_name: app-server-container
     ports:
-      - "9103:9100"
+      - "5002:5000"
     networks:
       - incident-net
     restart: unless-stopped
