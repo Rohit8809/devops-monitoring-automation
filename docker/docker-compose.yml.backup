@@ -12,7 +12,6 @@ services:
       - PYTHONUNBUFFERED=1
     volumes:
       - ../flask:/app
-      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       incident-net:
         ipv4_address: 172.30.0.50

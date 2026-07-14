@@ -43,6 +43,8 @@ def send_email(to_emails, subject, body):
 def send_test_email():
     pass
 
+def get_ist_time():
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 def build_support_email(ticket_number, alert_name, server, severity, priority, status, summary, description, start_time):
     generated_time = get_ist_time()

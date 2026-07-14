@@ -239,16 +239,9 @@ Operations Team
 docker_client = docker.from_env()
 
 # Protect the dashboard backend and database from accidental shutdown.
-CORE_CONTAINERS = {
+BLOCKED_CONTAINER_ACTIONS = {
     "flask-container",
     "osticket-db-container"
-}
-
-CRITICAL_CONTAINERS = {
-    "prometheus-container",
-    "alertmanager-container",
-    "osticket-container",
-    "grafana-container"
 }
 
 
@@ -269,14 +262,7 @@ def get_containers():
                 "status": container.status,
                 "created": container.attrs.get("Created"),
                 "ports": container.attrs.get("NetworkSettings", {}).get("Ports", {}),
-                "action_allowed": container.name not in CORE_CONTAINERS,
-                "protection_level": (
-                    "core"
-                    if container.name in CORE_CONTAINERS
-                    else "critical"
-                    if container.name in CRITICAL_CONTAINERS
-                    else "normal"
-                )
+                "action_allowed": container.name not in BLOCKED_CONTAINER_ACTIONS
             })
 
         container_data.sort(key=lambda item: item["name"].lower())
@@ -315,7 +301,7 @@ def control_container(container_name, action):
             "message": f"Unsupported action: {action}"
         }), 400
 
-    if container_name in CORE_CONTAINERS:
+    if container_name in BLOCKED_CONTAINER_ACTIONS:
         return jsonify({
             "success": False,
             "message": (

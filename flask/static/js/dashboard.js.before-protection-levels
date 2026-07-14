@@ -93,7 +93,7 @@ function actionButtons(container) {
     const startButton = `
         <button
             class="btn btn-sm btn-outline-success"
-            onclick="performContainerAction('${encodedName}', 'start', '${container.protection_level}')"
+            onclick="performContainerAction('${encodedName}', 'start')"
             ${running ? "disabled" : ""}
         >
             <i class="bi bi-play-fill"></i>
@@ -104,7 +104,7 @@ function actionButtons(container) {
     const stopButton = `
         <button
             class="btn btn-sm btn-outline-danger"
-            onclick="performContainerAction('${encodedName}', 'stop', '${container.protection_level}')"
+            onclick="performContainerAction('${encodedName}', 'stop')"
             ${running ? "" : "disabled"}
         >
             <i class="bi bi-stop-fill"></i>
@@ -115,7 +115,7 @@ function actionButtons(container) {
     const restartButton = `
         <button
             class="btn btn-sm btn-outline-warning"
-            onclick="performContainerAction('${encodedName}', 'restart', '${container.protection_level}')"
+            onclick="performContainerAction('${encodedName}', 'restart')"
         >
             <i class="bi bi-arrow-clockwise"></i>
             Restart
@@ -225,26 +225,12 @@ async function loadContainers() {
 }
 
 
-async function performContainerAction(
-    encodedContainerName,
-    action,
-    protectionLevel = "normal"
-) {
+async function performContainerAction(encodedContainerName, action) {
     const containerName = decodeURIComponent(encodedContainerName);
 
-    let confirmationMessage =
-        `Are you sure you want to ${action} ${containerName}?`;
-
-    if (protectionLevel === "critical") {
-        confirmationMessage =
-            `CRITICAL SERVICE WARNING\n\n` +
-            `Container: ${containerName}\n` +
-            `Action: ${action.toUpperCase()}\n\n` +
-            `This action may interrupt monitoring, alerting, or ticket services.\n\n` +
-            `Do you want to continue?`;
-    }
-
-    const confirmed = window.confirm(confirmationMessage);
+    const confirmed = window.confirm(
+        `Are you sure you want to ${action} ${containerName}?`
+    );
 
     if (!confirmed) {
         return;
