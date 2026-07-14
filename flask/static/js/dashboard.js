@@ -313,3 +313,788 @@ async function viewContainerLogs(encodedContainerName, displayName) {
         logsOutput.textContent = `Failed to load logs: ${error.message}`;
     }
 }
+
+
+const cpuCharts = {};
+
+
+function createCpuChart(canvasId, series) {
+    const canvas = document.getElementById(canvasId);
+
+    if (!canvas) {
+        return;
+    }
+
+    const labels = series.values.map(point => {
+        return new Date(point.timestamp * 1000)
+            .toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+    });
+
+    const values = series.values.map(point => point.value);
+
+    if (cpuCharts[canvasId]) {
+        cpuCharts[canvasId].destroy();
+    }
+
+    cpuCharts[canvasId] = new Chart(canvas, {
+        type: "line",
+
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: "CPU Usage",
+                    data: values,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    tension: 0.25,
+                    fill: true
+                }
+            ]
+        },
+
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+
+            interaction: {
+                mode: "index",
+                intersect: false
+            },
+
+            plugins: {
+                legend: {
+                    display: false
+                },
+
+                tooltip: {
+                    callbacks: {
+                        label: context => {
+                            return `CPU: ${context.parsed.y.toFixed(2)}%`;
+                        }
+                    }
+                }
+            },
+
+            scales: {
+                x: {
+                    ticks: {
+                        maxTicksLimit: 6
+                    },
+
+                    title: {
+                        display: true,
+                        text: "Time"
+                    }
+                },
+
+                y: {
+                    beginAtZero: true,
+                    suggestedMax: 100,
+
+                    title: {
+                        display: true,
+                        text: "CPU %"
+                    },
+
+                    ticks: {
+                        callback: value => `${value}%`
+                    }
+                }
+            }
+        }
+    });
+}
+
+
+async function loadCpuGraphs() {
+    const refreshCpuButton = document.getElementById(
+        "refresh-cpu-button"
+    );
+
+    const graphMessage = document.getElementById(
+        "cpu-graph-message"
+    );
+
+    if (!refreshCpuButton) {
+        return;
+    }
+
+    refreshCpuButton.disabled = true;
+
+    refreshCpuButton.innerHTML = `
+        <span class="spinner-border spinner-border-sm me-1"></span>
+        Loading
+    `;
+
+    graphMessage.classList.add("d-none");
+
+    try {
+        const response = await fetch(
+            "/api/metrics/cpu-history",
+            {
+                cache: "no-store"
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.message || "Unable to load CPU graphs"
+            );
+        }
+
+        const chartMapping = {
+            "db-server:9100": "db-server-cpu-chart",
+            "monitoring-server:9100": "monitoring-server-cpu-chart",
+            "node-exporter:9100": "node-exporter-cpu-chart"
+        };
+
+        for (const [instance, canvasId] of Object.entries(chartMapping)) {
+            const series = result.series.find(
+                item => item.instance === instance
+            );
+
+            if (!series || !series.values.length) {
+                console.warn(`No CPU data found for ${instance}`);
+                continue;
+            }
+
+            createCpuChart(canvasId, series);
+        }
+
+    } catch (error) {
+        console.error("CPU graph error:", error);
+
+        graphMessage.textContent = error.message;
+        graphMessage.classList.remove("d-none");
+
+    } finally {
+        refreshCpuButton.disabled = false;
+
+        refreshCpuButton.innerHTML = `
+            <i class="bi bi-arrow-clockwise"></i>
+            Refresh Graphs
+        `;
+    }
+}
+
+
+document.addEventListener("DOMContentLoaded", () => {
+    const refreshCpuButton = document.getElementById(
+        "refresh-cpu-button"
+    );
+
+    if (refreshCpuButton) {
+        refreshCpuButton.addEventListener(
+            "click",
+            loadCpuGraphs
+        );
+    }
+
+    loadCpuGraphs();
+
+    window.setInterval(loadCpuGraphs, 60000);
+});
+
+
+function ticketStatusBadge(status, statusState) {
+    const normalizedState = String(statusState || "").toLowerCase();
+
+    if (normalizedState === "open") {
+        return `
+            <span class="badge text-bg-success">
+                ${escapeHtml(status)}
+            </span>
+        `;
+    }
+
+    if (normalizedState === "closed") {
+        return `
+            <span class="badge text-bg-secondary">
+                ${escapeHtml(status)}
+            </span>
+        `;
+    }
+
+    if (normalizedState === "archived") {
+        return `
+            <span class="badge text-bg-dark">
+                ${escapeHtml(status)}
+            </span>
+        `;
+    }
+
+    return `
+        <span class="badge text-bg-secondary">
+            ${escapeHtml(status)}
+        </span>
+    `;
+}
+
+
+function ticketPriorityBadge(priority) {
+    const normalizedPriority = String(priority || "").toLowerCase();
+
+    if (
+        normalizedPriority === "emergency" ||
+        normalizedPriority === "critical"
+    ) {
+        return `
+            <span class="badge text-bg-danger">
+                ${escapeHtml(priority)}
+            </span>
+        `;
+    }
+
+    if (normalizedPriority === "high") {
+        return `
+            <span class="badge text-bg-warning">
+                ${escapeHtml(priority)}
+            </span>
+        `;
+    }
+
+    if (normalizedPriority === "low") {
+        return `
+            <span class="badge text-bg-info">
+                ${escapeHtml(priority)}
+            </span>
+        `;
+    }
+
+    return `
+        <span class="badge text-bg-primary">
+            ${escapeHtml(priority || "Normal")}
+        </span>
+    `;
+}
+
+
+function formatTicketDate(dateValue) {
+    if (!dateValue) {
+        return "—";
+    }
+
+    const date = new Date(dateValue);
+
+    if (Number.isNaN(date.getTime())) {
+        return escapeHtml(dateValue);
+    }
+
+    return date.toLocaleString([], {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+}
+
+
+function showTicketMessage(message, type = "success") {
+    const messageBox = document.getElementById("ticket-message");
+
+    if (!messageBox) {
+        return;
+    }
+
+    messageBox.className = `alert alert-${type} m-3`;
+    messageBox.textContent = message;
+
+    window.setTimeout(() => {
+        messageBox.classList.add("d-none");
+    }, 5000);
+}
+
+
+async function loadTicketSummary() {
+    const openIncidentCount = document.getElementById(
+        "open-incidents-count"
+    );
+
+    if (!openIncidentCount) {
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            "/api/tickets/summary",
+            {
+                cache: "no-store"
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.message || "Unable to load incident summary"
+            );
+        }
+
+        openIncidentCount.textContent = result.open;
+
+    } catch (error) {
+        console.error("Ticket summary error:", error);
+        openIncidentCount.textContent = "—";
+    }
+}
+
+
+async function loadTickets() {
+    const tableBody = document.getElementById("ticket-table-body");
+    const refreshButton = document.getElementById(
+        "refresh-tickets-button"
+    );
+
+    if (!tableBody || !refreshButton) {
+        return;
+    }
+
+    refreshButton.disabled = true;
+    refreshButton.innerHTML = `
+        <span class="spinner-border spinner-border-sm me-1"></span>
+        Loading
+    `;
+
+    try {
+        const response = await fetch(
+            "/api/tickets?limit=10",
+            {
+                cache: "no-store"
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.message || "Unable to retrieve osTicket incidents"
+            );
+        }
+
+        if (!result.tickets.length) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center py-4 text-secondary">
+                        No osTicket incidents were found.
+                    </td>
+                </tr>
+            `;
+
+            await loadTicketSummary();
+            return;
+        }
+
+        tableBody.innerHTML = result.tickets.map(ticket => `
+            <tr>
+                <td>
+                    <div class="fw-semibold">
+                        ${escapeHtml(ticket.number)}
+                    </div>
+
+                    <small class="text-secondary">
+                        ID ${escapeHtml(ticket.ticket_id)}
+                    </small>
+                </td>
+
+                <td>
+                    <div class="ticket-subject">
+                        ${escapeHtml(ticket.subject)}
+                    </div>
+
+                    <small class="text-secondary">
+                        ${escapeHtml(ticket.requester_email)}
+                    </small>
+                </td>
+
+                <td>
+                    ${ticketPriorityBadge(ticket.priority)}
+                </td>
+
+                <td>
+                    ${ticketStatusBadge(
+                        ticket.status,
+                        ticket.status_state
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHtml(ticket.department)}
+                </td>
+
+                <td>
+                    <span class="small">
+                        ${formatTicketDate(ticket.created)}
+                    </span>
+                </td>
+
+                <td>
+                    <a
+                        href="http://localhost:8080/scp/tickets.php?id=${encodeURIComponent(ticket.ticket_id)}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="btn btn-sm btn-outline-dark"
+                    >
+                        <i class="bi bi-box-arrow-up-right"></i>
+                        View
+                    </a>
+                </td>
+            </tr>
+        `).join("");
+
+        await loadTicketSummary();
+
+    } catch (error) {
+        console.error("Ticket loading error:", error);
+
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-4 text-danger">
+                    Failed to load incidents: ${escapeHtml(error.message)}
+                </td>
+            </tr>
+        `;
+
+        showTicketMessage(error.message, "danger");
+
+    } finally {
+        refreshButton.disabled = false;
+        refreshButton.innerHTML = `
+            <i class="bi bi-arrow-clockwise"></i>
+            Refresh Tickets
+        `;
+    }
+}
+
+
+document.addEventListener("DOMContentLoaded", () => {
+    const refreshTicketsButton = document.getElementById(
+        "refresh-tickets-button"
+    );
+
+    if (refreshTicketsButton) {
+        refreshTicketsButton.addEventListener(
+            "click",
+            loadTickets
+        );
+    }
+
+    loadTickets();
+    loadTicketSummary();
+
+    // Refresh incidents automatically every 30 seconds.
+    window.setInterval(loadTickets, 30000);
+});
+
+
+function formatAlertTime(dateValue) {
+    if (!dateValue) {
+        return "Unknown";
+    }
+
+    const date = new Date(dateValue);
+
+    if (Number.isNaN(date.getTime())) {
+        return escapeHtml(dateValue);
+    }
+
+    return date.toLocaleString([], {
+        month: "short",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+}
+
+
+function alertSeverityClass(severity) {
+    const normalizedSeverity = String(severity || "").toLowerCase();
+
+    if (normalizedSeverity === "critical") {
+        return "danger";
+    }
+
+    if (
+        normalizedSeverity === "warning" ||
+        normalizedSeverity === "warn"
+    ) {
+        return "warning";
+    }
+
+    return "secondary";
+}
+
+
+function updateAlertIndicator(summary) {
+    const button = document.getElementById("alert-indicator-button");
+    const icon = document.getElementById("alert-indicator-icon");
+    const countBadge = document.getElementById("active-alert-count");
+
+    if (!button || !icon || !countBadge) {
+        return;
+    }
+
+    button.classList.remove(
+        "alert-indicator-healthy",
+        "alert-indicator-warning",
+        "alert-indicator-critical",
+        "alert-indicator-unknown"
+    );
+
+    if (summary.critical > 0) {
+        button.classList.add("alert-indicator-critical");
+        icon.className = "bi bi-exclamation-octagon-fill";
+        button.title = `${summary.critical} critical alert(s)`;
+
+    } else if (summary.warning > 0) {
+        button.classList.add("alert-indicator-warning");
+        icon.className = "bi bi-exclamation-triangle-fill";
+        button.title = `${summary.warning} warning alert(s)`;
+
+    } else if (summary.active > 0) {
+        button.classList.add("alert-indicator-warning");
+        icon.className = "bi bi-bell-fill";
+        button.title = `${summary.active} active alert(s)`;
+
+    } else {
+        button.classList.add("alert-indicator-healthy");
+        icon.className = "bi bi-check-circle-fill";
+        button.title = "No active alerts";
+    }
+
+    countBadge.textContent = summary.active;
+
+    if (summary.active > 0) {
+        countBadge.classList.remove("d-none");
+    } else {
+        countBadge.classList.add("d-none");
+    }
+}
+
+
+async function loadAlertSummary() {
+    try {
+        const response = await fetch(
+            "/api/alerts/summary",
+            {
+                cache: "no-store"
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.message || "Unable to load alert summary"
+            );
+        }
+
+        updateAlertIndicator(result);
+
+    } catch (error) {
+        console.error("Alert summary error:", error);
+
+        const button = document.getElementById(
+            "alert-indicator-button"
+        );
+
+        const icon = document.getElementById(
+            "alert-indicator-icon"
+        );
+
+        if (button && icon) {
+            button.className =
+                "alert-indicator alert-indicator-unknown";
+
+            icon.className = "bi bi-question-circle-fill";
+            button.title = "Alertmanager unavailable";
+        }
+    }
+}
+
+
+function renderActiveAlerts(alerts) {
+    const popupContent = document.getElementById(
+        "active-alerts-popup-content"
+    );
+
+    const summaryText = document.getElementById(
+        "active-alert-summary"
+    );
+
+    if (!popupContent || !summaryText) {
+        return;
+    }
+
+    if (!alerts.length) {
+        summaryText.textContent = "0 active alerts";
+
+        popupContent.innerHTML = `
+            <div class="alert-popup-healthy">
+                <i class="bi bi-check-circle-fill"></i>
+
+                <h5>No active alerts</h5>
+
+                <p class="mb-0 text-secondary">
+                    Alertmanager reports that the monitored
+                    infrastructure is healthy.
+                </p>
+            </div>
+        `;
+
+        return;
+    }
+
+    const criticalCount = alerts.filter(alert =>
+        String(alert.severity).toLowerCase() === "critical"
+    ).length;
+
+    const warningCount = alerts.filter(alert =>
+        ["warning", "warn"].includes(
+            String(alert.severity).toLowerCase()
+        )
+    ).length;
+
+    summaryText.textContent =
+        `${alerts.length} active · ` +
+        `${criticalCount} critical · ` +
+        `${warningCount} warning`;
+
+    popupContent.innerHTML = alerts.map(alert => {
+        const severityClass = alertSeverityClass(
+            alert.severity
+        );
+
+        return `
+            <div class="active-alert-item border-${severityClass}">
+                <div class="d-flex justify-content-between gap-3">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span
+                                class="badge text-bg-${severityClass}"
+                            >
+                                ${escapeHtml(
+                                    String(alert.severity).toUpperCase()
+                                )}
+                            </span>
+
+                            <span class="fw-semibold">
+                                ${escapeHtml(alert.alertname)}
+                            </span>
+                        </div>
+
+                        <div class="small text-secondary mb-2">
+                            ${escapeHtml(alert.instance)}
+                        </div>
+
+                        <div>
+                            ${escapeHtml(alert.summary)}
+                        </div>
+                    </div>
+
+                    <div class="small text-secondary text-nowrap">
+                        ${formatAlertTime(alert.starts_at)}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join("");
+}
+
+
+async function loadActiveAlerts() {
+    const popupContent = document.getElementById(
+        "active-alerts-popup-content"
+    );
+
+    const refreshButton = document.getElementById(
+        "refresh-alerts-button"
+    );
+
+    if (!popupContent) {
+        return;
+    }
+
+    if (refreshButton) {
+        refreshButton.disabled = true;
+        refreshButton.innerHTML = `
+            <span class="spinner-border spinner-border-sm me-1"></span>
+            Loading
+        `;
+    }
+
+    try {
+        const response = await fetch(
+            "/api/alerts",
+            {
+                cache: "no-store"
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.message || "Unable to retrieve alerts"
+            );
+        }
+
+        renderActiveAlerts(result.alerts);
+        await loadAlertSummary();
+
+    } catch (error) {
+        console.error("Active-alert loading error:", error);
+
+        popupContent.innerHTML = `
+            <div class="alert alert-danger mb-0">
+                ${escapeHtml(error.message)}
+            </div>
+        `;
+
+    } finally {
+        if (refreshButton) {
+            refreshButton.disabled = false;
+            refreshButton.innerHTML = `
+                <i class="bi bi-arrow-clockwise"></i>
+                Refresh
+            `;
+        }
+    }
+}
+
+
+document.addEventListener("DOMContentLoaded", () => {
+    const alertButton = document.getElementById(
+        "alert-indicator-button"
+    );
+
+    const refreshAlertsButton = document.getElementById(
+        "refresh-alerts-button"
+    );
+
+    if (alertButton) {
+        alertButton.addEventListener(
+            "click",
+            loadActiveAlerts
+        );
+    }
+
+    if (refreshAlertsButton) {
+        refreshAlertsButton.addEventListener(
+            "click",
+            loadActiveAlerts
+        );
+    }
+
+    loadAlertSummary();
+
+    // Update the top-right indicator every 15 seconds.
+    window.setInterval(loadAlertSummary, 15000);
+});

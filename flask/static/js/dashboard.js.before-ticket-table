@@ -1,0 +1,503 @@
+console.log("Incident Management Dashboard loaded");
+
+const containerTableBody = document.getElementById("container-table-body");
+const totalContainersElement = document.getElementById("total-containers");
+const runningContainersElement = document.getElementById("running-containers");
+const stoppedContainersElement = document.getElementById("stopped-containers");
+const refreshButton = document.getElementById("refresh-containers-button");
+const messageBox = document.getElementById("container-message");
+
+let containerLogsModal;
+
+document.addEventListener("DOMContentLoaded", () => {
+    const modalElement = document.getElementById("containerLogsModal");
+
+    if (modalElement) {
+        containerLogsModal = new bootstrap.Modal(modalElement);
+    }
+
+    refreshButton.addEventListener("click", loadContainers);
+
+    loadContainers();
+
+    // Automatically refresh container status every 15 seconds.
+    window.setInterval(loadContainers, 15000);
+});
+
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+
+function showMessage(message, type = "success") {
+    messageBox.className = `alert alert-${type} m-3`;
+    messageBox.textContent = message;
+
+    window.setTimeout(() => {
+        messageBox.classList.add("d-none");
+    }, 5000);
+}
+
+
+function statusBadge(status) {
+    const normalizedStatus = String(status).toLowerCase();
+
+    if (normalizedStatus === "running") {
+        return '<span class="badge text-bg-success">Running</span>';
+    }
+
+    if (normalizedStatus === "exited") {
+        return '<span class="badge text-bg-danger">Stopped</span>';
+    }
+
+    if (normalizedStatus === "restarting") {
+        return '<span class="badge text-bg-warning">Restarting</span>';
+    }
+
+    if (normalizedStatus === "paused") {
+        return '<span class="badge text-bg-secondary">Paused</span>';
+    }
+
+    return `<span class="badge text-bg-secondary">${escapeHtml(status)}</span>`;
+}
+
+
+function actionButtons(container) {
+    const name = escapeHtml(container.name);
+    const encodedName = encodeURIComponent(container.name);
+    const running = container.status === "running";
+
+    if (!container.action_allowed) {
+        return `
+            <button class="btn btn-sm btn-outline-secondary" disabled>
+                <i class="bi bi-lock"></i>
+                Protected
+            </button>
+
+            <button
+                class="btn btn-sm btn-outline-dark"
+                onclick="viewContainerLogs('${encodedName}', '${name}')"
+            >
+                <i class="bi bi-terminal"></i>
+                Logs
+            </button>
+        `;
+    }
+
+    const startButton = `
+        <button
+            class="btn btn-sm btn-outline-success"
+            onclick="performContainerAction('${encodedName}', 'start', '${container.protection_level}')"
+            ${running ? "disabled" : ""}
+        >
+            <i class="bi bi-play-fill"></i>
+            Start
+        </button>
+    `;
+
+    const stopButton = `
+        <button
+            class="btn btn-sm btn-outline-danger"
+            onclick="performContainerAction('${encodedName}', 'stop', '${container.protection_level}')"
+            ${running ? "" : "disabled"}
+        >
+            <i class="bi bi-stop-fill"></i>
+            Stop
+        </button>
+    `;
+
+    const restartButton = `
+        <button
+            class="btn btn-sm btn-outline-warning"
+            onclick="performContainerAction('${encodedName}', 'restart', '${container.protection_level}')"
+        >
+            <i class="bi bi-arrow-clockwise"></i>
+            Restart
+        </button>
+    `;
+
+    const logsButton = `
+        <button
+            class="btn btn-sm btn-outline-dark"
+            onclick="viewContainerLogs('${encodedName}', '${name}')"
+        >
+            <i class="bi bi-terminal"></i>
+            Logs
+        </button>
+    `;
+
+    return `
+        <div class="d-flex flex-wrap gap-1">
+            ${startButton}
+            ${stopButton}
+            ${restartButton}
+            ${logsButton}
+        </div>
+    `;
+}
+
+
+async function loadContainers() {
+    refreshButton.disabled = true;
+    refreshButton.innerHTML = `
+        <span class="spinner-border spinner-border-sm me-1"></span>
+        Refreshing
+    `;
+
+    try {
+        const response = await fetch("/api/containers", {
+            cache: "no-store"
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || "Unable to fetch containers");
+        }
+
+        totalContainersElement.textContent = result.total;
+        runningContainersElement.textContent = result.running;
+        stoppedContainersElement.textContent = result.total - result.running;
+
+        if (!result.containers.length) {
+            containerTableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-4 text-secondary">
+                        No Docker containers were found.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        containerTableBody.innerHTML = result.containers.map(container => `
+            <tr>
+                <td>
+                    <div class="fw-semibold">${escapeHtml(container.name)}</div>
+                </td>
+
+                <td>
+                    <span class="small text-secondary">
+                        ${escapeHtml(container.image)}
+                    </span>
+                </td>
+
+                <td>
+                    ${statusBadge(container.status)}
+                </td>
+
+                <td>
+                    <code>${escapeHtml(container.id)}</code>
+                </td>
+
+                <td>
+                    ${actionButtons(container)}
+                </td>
+            </tr>
+        `).join("");
+
+    } catch (error) {
+        console.error(error);
+
+        containerTableBody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center py-4 text-danger">
+                    Failed to load Docker containers: ${escapeHtml(error.message)}
+                </td>
+            </tr>
+        `;
+
+        showMessage(error.message, "danger");
+
+    } finally {
+        refreshButton.disabled = false;
+        refreshButton.innerHTML = `
+            <i class="bi bi-arrow-clockwise"></i>
+            Refresh
+        `;
+    }
+}
+
+
+async function performContainerAction(
+    encodedContainerName,
+    action,
+    protectionLevel = "normal"
+) {
+    const containerName = decodeURIComponent(encodedContainerName);
+
+    let confirmationMessage =
+        `Are you sure you want to ${action} ${containerName}?`;
+
+    if (protectionLevel === "critical") {
+        confirmationMessage =
+            `CRITICAL SERVICE WARNING\n\n` +
+            `Container: ${containerName}\n` +
+            `Action: ${action.toUpperCase()}\n\n` +
+            `This action may interrupt monitoring, alerting, or ticket services.\n\n` +
+            `Do you want to continue?`;
+    }
+
+    const confirmed = window.confirm(confirmationMessage);
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        showMessage(
+            `${action.charAt(0).toUpperCase() + action.slice(1)} request sent for ${containerName}`,
+            "info"
+        );
+
+        const response = await fetch(
+            `/api/containers/${encodedContainerName}/${action}`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || "Container action failed");
+        }
+
+        showMessage(result.message, "success");
+
+        await loadContainers();
+
+    } catch (error) {
+        console.error(error);
+        showMessage(error.message, "danger");
+    }
+}
+
+
+async function viewContainerLogs(encodedContainerName, displayName) {
+    const logsOutput = document.getElementById("container-logs-output");
+    const modalTitle = document.getElementById("containerLogsModalLabel");
+
+    modalTitle.textContent = `${displayName} logs`;
+    logsOutput.textContent = "Loading logs from Docker Engine...";
+
+    containerLogsModal.show();
+
+    try {
+        const response = await fetch(
+            `/api/containers/${encodedContainerName}/logs`,
+            {
+                cache: "no-store"
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || "Unable to retrieve logs");
+        }
+
+        logsOutput.textContent = result.logs || "No logs available.";
+
+    } catch (error) {
+        console.error(error);
+        logsOutput.textContent = `Failed to load logs: ${error.message}`;
+    }
+}
+
+
+const cpuCharts = {};
+
+
+function createCpuChart(canvasId, series) {
+    const canvas = document.getElementById(canvasId);
+
+    if (!canvas) {
+        return;
+    }
+
+    const labels = series.values.map(point => {
+        return new Date(point.timestamp * 1000)
+            .toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+    });
+
+    const values = series.values.map(point => point.value);
+
+    if (cpuCharts[canvasId]) {
+        cpuCharts[canvasId].destroy();
+    }
+
+    cpuCharts[canvasId] = new Chart(canvas, {
+        type: "line",
+
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: "CPU Usage",
+                    data: values,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    tension: 0.25,
+                    fill: true
+                }
+            ]
+        },
+
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+
+            interaction: {
+                mode: "index",
+                intersect: false
+            },
+
+            plugins: {
+                legend: {
+                    display: false
+                },
+
+                tooltip: {
+                    callbacks: {
+                        label: context => {
+                            return `CPU: ${context.parsed.y.toFixed(2)}%`;
+                        }
+                    }
+                }
+            },
+
+            scales: {
+                x: {
+                    ticks: {
+                        maxTicksLimit: 6
+                    },
+
+                    title: {
+                        display: true,
+                        text: "Time"
+                    }
+                },
+
+                y: {
+                    beginAtZero: true,
+                    suggestedMax: 100,
+
+                    title: {
+                        display: true,
+                        text: "CPU %"
+                    },
+
+                    ticks: {
+                        callback: value => `${value}%`
+                    }
+                }
+            }
+        }
+    });
+}
+
+
+async function loadCpuGraphs() {
+    const refreshCpuButton = document.getElementById(
+        "refresh-cpu-button"
+    );
+
+    const graphMessage = document.getElementById(
+        "cpu-graph-message"
+    );
+
+    if (!refreshCpuButton) {
+        return;
+    }
+
+    refreshCpuButton.disabled = true;
+
+    refreshCpuButton.innerHTML = `
+        <span class="spinner-border spinner-border-sm me-1"></span>
+        Loading
+    `;
+
+    graphMessage.classList.add("d-none");
+
+    try {
+        const response = await fetch(
+            "/api/metrics/cpu-history",
+            {
+                cache: "no-store"
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.message || "Unable to load CPU graphs"
+            );
+        }
+
+        const chartMapping = {
+            "db-server:9100": "db-server-cpu-chart",
+            "monitoring-server:9100": "monitoring-server-cpu-chart",
+            "node-exporter:9100": "node-exporter-cpu-chart"
+        };
+
+        for (const [instance, canvasId] of Object.entries(chartMapping)) {
+            const series = result.series.find(
+                item => item.instance === instance
+            );
+
+            if (!series || !series.values.length) {
+                console.warn(`No CPU data found for ${instance}`);
+                continue;
+            }
+
+            createCpuChart(canvasId, series);
+        }
+
+    } catch (error) {
+        console.error("CPU graph error:", error);
+
+        graphMessage.textContent = error.message;
+        graphMessage.classList.remove("d-none");
+
+    } finally {
+        refreshCpuButton.disabled = false;
+
+        refreshCpuButton.innerHTML = `
+            <i class="bi bi-arrow-clockwise"></i>
+            Refresh Graphs
+        `;
+    }
+}
+
+
+document.addEventListener("DOMContentLoaded", () => {
+    const refreshCpuButton = document.getElementById(
+        "refresh-cpu-button"
+    );
+
+    if (refreshCpuButton) {
+        refreshCpuButton.addEventListener(
+            "click",
+            loadCpuGraphs
+        );
+    }
+
+    loadCpuGraphs();
+
+    window.setInterval(loadCpuGraphs, 60000);
+});

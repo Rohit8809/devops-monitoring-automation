@@ -18,7 +18,7 @@
 
     <link
         rel="stylesheet"
-        href="{{ url_for('static', filename='css/dashboard.css', v='6') }}"
+        href="{{ url_for('static', filename='css/dashboard.css', v='4') }}"
     >
 </head>
 
@@ -81,27 +81,7 @@
             </div>
 
             <div class="d-flex align-items-center gap-3">
-                <button
-                    type="button"
-                    id="alert-indicator-button"
-                    class="alert-indicator alert-indicator-healthy"
-                    data-bs-toggle="modal"
-                    data-bs-target="#activeAlertsModal"
-                    title="View active alerts"
-                >
-                    <i
-                        id="alert-indicator-icon"
-                        class="bi bi-check-circle-fill"
-                    ></i>
-
-                    <span
-                        id="active-alert-count"
-                        class="alert-count-badge d-none"
-                    >
-                        0
-                    </span>
-                </button>
-
+                <i class="bi bi-bell fs-5"></i>
                 <span class="fw-semibold">Rohit Kumar</span>
             </div>
         </header>
@@ -165,7 +145,7 @@
                             <div class="d-flex justify-content-between">
                                 <div>
                                     <p class="text-secondary mb-1">Open Incidents</p>
-                                    <h2 class="mb-0 text-warning" id="open-incidents-count">0</h2>
+                                    <h2 class="mb-0 text-warning">0</h2>
                                 </div>
                                 <i class="bi bi-ticket-detailed summary-icon text-warning"></i>
                             </div>
@@ -302,59 +282,6 @@
                 </div>
             </div>
 
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="mb-0">Live Incident Management</h5>
-                        <small class="text-secondary">
-                            Tickets fetched directly from osTicket
-                        </small>
-                    </div>
-
-                    <button
-                        type="button"
-                        class="btn btn-sm btn-outline-primary"
-                        id="refresh-tickets-button"
-                    >
-                        <i class="bi bi-arrow-clockwise"></i>
-                        Refresh Tickets
-                    </button>
-                </div>
-
-                <div class="card-body p-0">
-                    <div
-                        id="ticket-message"
-                        class="alert d-none m-3"
-                        role="alert"
-                    ></div>
-
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Ticket</th>
-                                    <th>Subject</th>
-                                    <th>Priority</th>
-                                    <th>Status</th>
-                                    <th>Department</th>
-                                    <th>Created</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-
-                            <tbody id="ticket-table-body">
-                                <tr>
-                                    <td colspan="7" class="text-center py-4 text-secondary">
-                                        <div class="spinner-border spinner-border-sm me-2"></div>
-                                        Loading incidents from osTicket...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
             <div class="card shadow-sm">
                 <div class="card-header bg-white">
                     <h5 class="mb-0">Quick Access</h5>
@@ -397,72 +324,6 @@
 
 <div
     class="modal fade"
-    id="activeAlertsModal"
-    tabindex="-1"
-    aria-labelledby="activeAlertsModalLabel"
-    aria-hidden="true"
->
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div>
-                    <h5
-                        class="modal-title"
-                        id="activeAlertsModalLabel"
-                    >
-                        Active Infrastructure Alerts
-                    </h5>
-
-                    <small
-                        id="active-alert-summary"
-                        class="text-secondary"
-                    >
-                        Checking Alertmanager...
-                    </small>
-                </div>
-
-                <button
-                    type="button"
-                    class="btn-close"
-                    data-bs-dismiss="modal"
-                    aria-label="Close"
-                ></button>
-            </div>
-
-            <div class="modal-body">
-                <div id="active-alerts-popup-content">
-                    <div class="text-center py-5 text-secondary">
-                        <div class="spinner-border spinner-border-sm me-2"></div>
-                        Loading active alerts...
-                    </div>
-                </div>
-            </div>
-
-            <div class="modal-footer">
-                <button
-                    type="button"
-                    class="btn btn-outline-primary"
-                    id="refresh-alerts-button"
-                >
-                    <i class="bi bi-arrow-clockwise"></i>
-                    Refresh
-                </button>
-
-                <button
-                    type="button"
-                    class="btn btn-secondary"
-                    data-bs-dismiss="modal"
-                >
-                    Close
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-<div
-    class="modal fade"
     id="containerLogsModal"
     tabindex="-1"
     aria-labelledby="containerLogsModalLabel"
@@ -494,7 +355,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<script src="{{ url_for('static', filename='js/dashboard.js', v='6') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js', v='4') }}"></script>
 
 </body>
 </html>
