@@ -587,77 +587,25 @@ def get_servers():
             if instance:
                 target_lookup[instance] = target
 
-        # The Prometheus targets API only confirms that Prometheus can
-        # scrape Blackbox Exporter. It does not confirm that the probed
-        # Web/Application endpoint is available. Query probe_success to
-        # obtain the real HTTP health result for Blackbox targets.
-        probe_response = requests.get(
-            f"{PROMETHEUS_URL}/api/v1/query",
-            params={
-                "query": 'probe_success{job="blackbox-http"}'
-            },
-            timeout=10
-        )
-        probe_response.raise_for_status()
-
-        probe_data = probe_response.json()
-
-        if probe_data.get("status") != "success":
-            return jsonify({
-                "success": False,
-                "message": "Prometheus probe query was unsuccessful"
-            }), 502
-
-        probe_lookup = {}
-
-        for result in probe_data.get("data", {}).get("result", []):
-            probe_instance = result.get("metric", {}).get("instance")
-            probe_value = result.get("value", [None, None])[1]
-
-            if probe_instance:
-                probe_lookup[probe_instance] = probe_value
-
         servers = []
 
         for instance, definition in server_definitions.items():
             target = target_lookup.get(instance)
 
             if target:
-                scrape_health = target.get("health", "unknown")
-                job = target.get("labels", {}).get("job", "unknown")
+                health = target.get("health", "unknown")
                 last_error = target.get("lastError") or None
-
-                if job == "blackbox-http":
-                    probe_value = probe_lookup.get(instance)
-
-                    if probe_value == "1":
-                        status = "online"
-                        health = "up"
-                    elif probe_value == "0":
-                        status = "offline"
-                        health = "down"
-
-                        if not last_error:
-                            last_error = "HTTP health probe failed"
-                    else:
-                        status = "unknown"
-                        health = "unknown"
-                        last_error = (
-                            last_error
-                            or "No probe_success metric returned"
-                        )
-                else:
-                    health = scrape_health
-                    status = (
-                        "online" if scrape_health == "up"
-                        else "offline"
-                    )
 
                 servers.append({
                     **definition,
                     "instance": instance,
-                    "job": job,
-                    "status": status,
+                    "job": target.get("labels", {}).get(
+                        "job",
+                        "unknown"
+                    ),
+                    "status": (
+                        "online" if health == "up" else "offline"
+                    ),
                     "prometheus_health": health,
                     "last_check": target.get("lastScrape"),
                     "response_time_ms": round(

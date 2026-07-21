@@ -18,7 +18,7 @@
 
     <link
         rel="stylesheet"
-        href="{{ url_for('static', filename='css/dashboard.css', v='8') }}"
+        href="{{ url_for('static', filename='css/dashboard.css', v='6') }}"
     >
 </head>
 
@@ -27,13 +27,10 @@
 <div class="d-flex">
 
     <aside class="sidebar p-3">
-        <div class="brand-block">
-            <span class="brand-mark"><i class="bi bi-shield-check"></i></span>
-            <div class="brand-copy">
-                <strong>Rinktech</strong>
-                <small>Ops Command Center</small>
-            </div>
-        </div>
+        <h4 class="text-white mb-4">
+            <i class="bi bi-shield-check"></i>
+            Dashboard
+        </h4>
 
         <nav class="nav flex-column">
             <a class="nav-link active" href="/dashboard">
@@ -46,7 +43,7 @@
                 Incidents
             </a>
 
-            <a class="nav-link" href="#servers-section">
+            <a class="nav-link" href="#">
                 <i class="bi bi-server"></i>
                 Servers
             </a>
@@ -77,11 +74,10 @@
 
         <header class="topbar d-flex justify-content-between align-items-center px-4">
             <div>
-                <h5 class="mb-0">Incident Management</h5>
-                <div class="system-health-line">
-                    <span class="live-dot"></span>
-                    Live operations dashboard
-                </div>
+                <h5 class="mb-0">Rinktech Incident Management</h5>
+                <small class="text-secondary">
+                    Operations dashboard
+                </small>
             </div>
 
             <div class="d-flex align-items-center gap-3">
@@ -106,82 +102,72 @@
                     </span>
                 </button>
 
-                <div class="user-profile">
-                    <span class="user-avatar">RK</span>
-                    <div class="user-copy">
-                        <strong>Rohit Kumar</strong>
-                        <small>Action User</small>
-                    </div>
-                </div>
+                <span class="fw-semibold">Rohit Kumar</span>
             </div>
         </header>
 
         <div class="container-fluid p-4">
 
-            <div class="dashboard-heading mb-4">
-                <div>
-                <span class="eyebrow">OPERATIONS OVERVIEW</span>
-                <h2>Infrastructure at a glance</h2>
+            <div class="mb-4">
+                <h2>Dashboard</h2>
                 <p class="text-secondary mb-0">
-                    Live infrastructure monitoring and incident operations
+                    TEST CHANGE FROM CONTAINER
                 </p>
-                </div>
-                <span class="last-updated"><i class="bi bi-broadcast"></i> Live data</span>
             </div>
 
             <div class="row g-4 mb-4">
 
                 <div class="col-md-6 col-xl-3">
-                    <div class="card summary-card summary-card-primary shadow-sm">
+                    <div class="card summary-card shadow-sm">
                         <div class="card-body">
                             <div class="d-flex justify-content-between">
                                 <div>
                                     <p class="text-secondary mb-1">Total Containers</p>
                                     <h2 class="mb-0" id="total-containers">0</h2>
                                 </div>
-                                <span class="summary-icon"><i class="bi bi-boxes"></i></span>
+                                <i class="bi bi-server summary-icon"></i>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="col-md-6 col-xl-3">
-                    <div class="card summary-card summary-card-success shadow-sm">
+                    <div class="card summary-card shadow-sm">
                         <div class="card-body">
                             <div class="d-flex justify-content-between">
                                 <div>
                                     <p class="text-secondary mb-1">Running</p>
                                     <h2 class="mb-0 text-success" id="running-containers">0</h2>
                                 </div>
-                                <span class="summary-icon"><i class="bi bi-check-circle"></i></span>
+                                <i class="bi bi-check-circle summary-icon text-success"></i>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="col-md-6 col-xl-3">
-                    <div class="card summary-card summary-card-danger shadow-sm">
+                    <div class="card summary-card shadow-sm">
                         <div class="card-body">
                             <div class="d-flex justify-content-between">
                                 <div>
                                     <p class="text-secondary mb-1">Stopped</p>
                                     <h2 class="mb-0 text-danger" id="stopped-containers">0</h2>
                                 </div>
-                                <span class="summary-icon"><i class="bi bi-stop-circle"></i></span>
+                                <i class="bi bi-exclamation-octagon summary-icon text-danger"></i>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="col-md-6 col-xl-3">
-                    <div class="card summary-card summary-card-warning shadow-sm">
+                    <div class="card summary-card shadow-sm">
                         <div class="card-body">
                             <div class="d-flex justify-content-between">
                                 <div>
                                     <p class="text-secondary mb-1">Open Incidents</p>
                                     <h2 class="mb-0 text-warning" id="open-incidents-count">0</h2>
                                 </div>
-                                <span class="summary-icon"><i class="bi bi-exclamation-diamond"></i></span>
+                                <i class="bi bi-ticket-detailed summary-icon text-warning"></i>
                             </div>
                         </div>
                     </div>
@@ -189,64 +175,10 @@
 
             </div>
 
-            <div
-                class="card shadow-sm mb-4"
-                id="servers-section"
-            >
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="mb-0"><span class="section-icon"><i class="bi bi-hdd-rack"></i></span> Infrastructure Servers</h5>
-                        <small class="text-secondary">
-                            Live health fetched directly from Prometheus
-                        </small>
-                    </div>
-
-                    <button
-                        type="button"
-                        class="btn btn-sm btn-outline-primary"
-                        id="refresh-servers-button"
-                    >
-                        <i class="bi bi-arrow-clockwise"></i>
-                        Refresh Servers
-                    </button>
-                </div>
-
-                <div class="card-body">
-                    <div
-                        id="server-message"
-                        class="alert alert-danger d-none"
-                    ></div>
-
-                    <div class="d-flex flex-wrap gap-3 mb-4">
-                        <span class="server-summary-pill">
-                            Total
-                            <strong id="total-servers-count">0</strong>
-                        </span>
-
-                        <span class="server-summary-pill server-summary-online">
-                            Online
-                            <strong id="online-servers-count">0</strong>
-                        </span>
-
-                        <span class="server-summary-pill server-summary-offline">
-                            Offline
-                            <strong id="offline-servers-count">0</strong>
-                        </span>
-                    </div>
-
-                    <div class="row g-4" id="server-cards-container">
-                        <div class="col-12 text-center py-4 text-secondary">
-                            <div class="spinner-border spinner-border-sm me-2"></div>
-                            Loading live server health...
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <div>
-                        <h5 class="mb-0"><span class="section-icon"><i class="bi bi-activity"></i></span> Infrastructure CPU Usage</h5>
+                        <h5 class="mb-0">Infrastructure CPU Usage</h5>
                         <small class="text-secondary">
                             Separate one-hour CPU graphs fetched from Prometheus
                         </small>
@@ -322,7 +254,7 @@
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <div>
-                        <h5 class="mb-0"><span class="section-icon"><i class="bi bi-boxes"></i></span> Docker Container Operations</h5>
+                        <h5 class="mb-0">Docker Container Operations</h5>
                         <small class="text-secondary">
                             Live data fetched directly from Docker Engine
                         </small>
@@ -373,7 +305,7 @@
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <div>
-                        <h5 class="mb-0"><span class="section-icon"><i class="bi bi-ticket-detailed"></i></span> Live Incident Management</h5>
+                        <h5 class="mb-0">Live Incident Management</h5>
                         <small class="text-secondary">
                             Tickets fetched directly from osTicket
                         </small>
@@ -425,7 +357,7 @@
 
             <div class="card shadow-sm">
                 <div class="card-header bg-white">
-                    <h5 class="mb-0"><span class="section-icon"><i class="bi bi-lightning-charge"></i></span> Quick Access</h5>
+                    <h5 class="mb-0">Quick Access</h5>
                 </div>
 
                 <div class="card-body d-flex flex-wrap gap-2">
@@ -433,25 +365,25 @@
                     <a
                         href="http://localhost:9091"
                         target="_blank"
-                        class="quick-link quick-link-prometheus"
+                        class="btn btn-outline-primary"
                     >
-                        <i class="bi bi-graph-up-arrow"></i><span><strong>Prometheus</strong><small>Metrics & queries</small></span><i class="bi bi-box-arrow-up-right"></i>
+                        Open Prometheus
                     </a>
 
                     <a
                         href="http://localhost:9095"
                         target="_blank"
-                        class="quick-link quick-link-alertmanager"
+                        class="btn btn-outline-secondary"
                     >
-                        <i class="bi bi-bell"></i><span><strong>Alertmanager</strong><small>Alert routing</small></span><i class="bi bi-box-arrow-up-right"></i>
+                        Open Alertmanager
                     </a>
 
                     <a
                         href="http://localhost:8080"
                         target="_blank"
-                        class="quick-link quick-link-osticket"
+                        class="btn btn-outline-dark"
                     >
-                        <i class="bi bi-ticket-perforated"></i><span><strong>osTicket</strong><small>Incident queue</small></span><i class="bi bi-box-arrow-up-right"></i>
+                        Open osTicket
                     </a>
 
                 </div>
@@ -562,7 +494,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<script src="{{ url_for('static', filename='js/dashboard.js', v='8') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js', v='6') }}"></script>
 
 </body>
 </html>
