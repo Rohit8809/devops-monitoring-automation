@@ -1,0 +1,18 @@
+RINKTECH LIVE INCIDENT WORKFLOW - INSTALL
+
+1. Extract this ZIP inside:
+   /mnt/d/Devops/devops-monitoring-automation
+
+2. Restart Flask:
+   cd /mnt/d/Devops/devops-monitoring-automation/docker
+   docker compose restart flask
+
+3. Validate the new API:
+   curl -s http://localhost:5001/api/system-flow | python3 -m json.tool
+
+4. Open and hard-refresh the dashboard:
+   http://localhost:5001/dashboard
+   Press Ctrl+Shift+R
+
+The files keep the same project-relative paths, so extraction can overwrite
+only the four updated dashboard/backend files.

@@ -18,7 +18,7 @@
 
     <link
         rel="stylesheet"
-        href="{{ url_for('static', filename='css/dashboard.css', v='9') }}"
+        href="{{ url_for('static', filename='css/dashboard.css', v='8') }}"
     >
 </head>
 
@@ -187,41 +187,6 @@
                     </div>
                 </div>
 
-            </div>
-
-            <div class="card shadow-sm mb-4 system-flow-card" id="system-flow-section">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="mb-0"><span class="section-icon"><i class="bi bi-diagram-3"></i></span> Live Incident Workflow</h5>
-                        <small class="text-secondary">
-                            End-to-end health from infrastructure detection to customer notification
-                        </small>
-                    </div>
-
-                    <div class="d-flex align-items-center gap-2">
-                        <span id="system-flow-overall" class="flow-overall flow-status-unknown">
-                            Checking
-                        </span>
-                        <button type="button" class="btn btn-sm btn-outline-primary" id="refresh-system-flow-button">
-                            <i class="bi bi-arrow-clockwise"></i> Refresh Flow
-                        </button>
-                    </div>
-                </div>
-
-                <div class="card-body">
-                    <div id="system-flow-message" class="alert alert-danger d-none"></div>
-                    <div id="system-flow" class="system-flow" aria-live="polite">
-                        <div class="flow-loading">
-                            <span class="spinner-border spinner-border-sm me-2"></span>
-                            Checking the complete incident workflow...
-                        </div>
-                    </div>
-                    <div class="flow-legend mt-3">
-                        <span><i class="flow-legend-dot flow-dot-healthy"></i> Healthy</span>
-                        <span><i class="flow-legend-dot flow-dot-warning"></i> Partially available</span>
-                        <span><i class="flow-legend-dot flow-dot-critical"></i> Connection interrupted</span>
-                    </div>
-                </div>
             </div>
 
             <div
@@ -597,7 +562,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<script src="{{ url_for('static', filename='js/dashboard.js', v='9') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js', v='8') }}"></script>
 
 </body>
 </html>
