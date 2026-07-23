@@ -1,8 +1,5 @@
 console.log("Incident Management Dashboard loaded");
 
-const canPerformActions =
-    document.body.dataset.canAct === "true";
-
 const containerTableBody = document.getElementById("container-table-body");
 const totalContainersElement = document.getElementById("total-containers");
 const runningContainersElement = document.getElementById("running-containers");
@@ -19,20 +16,12 @@ document.addEventListener("DOMContentLoaded", () => {
         containerLogsModal = new bootstrap.Modal(modalElement);
     }
 
-    if (refreshButton && containerTableBody) {
-        refreshButton.addEventListener("click", loadContainers);
-        loadContainers();
+    refreshButton.addEventListener("click", loadContainers);
 
-        // Automatically refresh container status every 15 seconds.
-        window.setInterval(loadContainers, 15000);
-    } else if (
-        totalContainersElement &&
-        runningContainersElement &&
-        stoppedContainersElement
-    ) {
-        loadContainerSummary();
-        window.setInterval(loadContainerSummary, 15000);
-    }
+    loadContainers();
+
+    // Automatically refresh container status every 15 seconds.
+    window.setInterval(loadContainers, 15000);
 });
 
 
@@ -47,10 +36,6 @@ function escapeHtml(value) {
 
 
 function showMessage(message, type = "success") {
-    if (!messageBox) {
-        return;
-    }
-
     messageBox.className = `alert alert-${type} m-3`;
     messageBox.textContent = message;
 
@@ -83,54 +68,10 @@ function statusBadge(status) {
 }
 
 
-async function loadContainerSummary() {
-    try {
-        const response = await fetch("/api/containers", {
-            cache: "no-store"
-        });
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-            throw new Error(
-                result.message || "Unable to fetch container summary"
-            );
-        }
-
-        totalContainersElement.textContent = result.total;
-        runningContainersElement.textContent = result.running;
-        stoppedContainersElement.textContent =
-            result.total - result.running;
-
-    } catch (error) {
-        console.error("Container summary error:", error);
-        totalContainersElement.textContent = "—";
-        runningContainersElement.textContent = "—";
-        stoppedContainersElement.textContent = "—";
-    }
-}
-
-
 function actionButtons(container) {
     const name = escapeHtml(container.name);
     const encodedName = encodeURIComponent(container.name);
     const running = container.status === "running";
-
-    if (!canPerformActions) {
-        return `
-            <button class="btn btn-sm btn-outline-secondary" disabled>
-                <i class="bi bi-eye"></i>
-                Monitor only
-            </button>
-
-            <button
-                class="btn btn-sm btn-outline-dark"
-                onclick="viewContainerLogs('${encodedName}', '${name}')"
-            >
-                <i class="bi bi-terminal"></i>
-                Logs
-            </button>
-        `;
-    }
 
     if (!container.action_allowed) {
         return `
@@ -203,13 +144,6 @@ function actionButtons(container) {
 
 
 async function loadContainers() {
-    if (
-        !containerTableBody ||
-        !refreshButton
-    ) {
-        return;
-    }
-
     refreshButton.disabled = true;
     refreshButton.innerHTML = `
         <span class="spinner-border spinner-border-sm me-1"></span>
@@ -227,16 +161,9 @@ async function loadContainers() {
             throw new Error(result.message || "Unable to fetch containers");
         }
 
-        if (
-            totalContainersElement &&
-            runningContainersElement &&
-            stoppedContainersElement
-        ) {
-            totalContainersElement.textContent = result.total;
-            runningContainersElement.textContent = result.running;
-            stoppedContainersElement.textContent =
-                result.total - result.running;
-        }
+        totalContainersElement.textContent = result.total;
+        runningContainersElement.textContent = result.running;
+        stoppedContainersElement.textContent = result.total - result.running;
 
         if (!result.containers.length) {
             containerTableBody.innerHTML = `
@@ -599,10 +526,9 @@ document.addEventListener("DOMContentLoaded", () => {
         );
     }
 
-    if (refreshCpuButton) {
-        loadCpuGraphs();
-        window.setInterval(loadCpuGraphs, 60000);
-    }
+    loadCpuGraphs();
+
+    window.setInterval(loadCpuGraphs, 60000);
 });
 
 
@@ -889,14 +815,11 @@ document.addEventListener("DOMContentLoaded", () => {
         );
     }
 
+    loadTickets();
     loadTicketSummary();
 
-    if (refreshTicketsButton) {
-        loadTickets();
-
-        // Refresh incidents automatically every 30 seconds.
-        window.setInterval(loadTickets, 30000);
-    }
+    // Refresh incidents automatically every 30 seconds.
+    window.setInterval(loadTickets, 30000);
 });
 
 
@@ -1027,31 +950,22 @@ async function loadAlertSummary() {
 
 
 function renderActiveAlerts(alerts) {
-    const targets = [
-        {
-            content: document.getElementById(
-                "active-alerts-popup-content"
-            ),
-            summary: document.getElementById(
-                "active-alert-summary"
-            )
-        },
-        {
-            content: document.getElementById(
-                "active-alerts-page-content"
-            ),
-            summary: document.getElementById(
-                "active-alerts-page-summary"
-            )
-        }
-    ].filter(target => target.content && target.summary);
+    const popupContent = document.getElementById(
+        "active-alerts-popup-content"
+    );
 
-    if (!targets.length) {
+    const summaryText = document.getElementById(
+        "active-alert-summary"
+    );
+
+    if (!popupContent || !summaryText) {
         return;
     }
 
     if (!alerts.length) {
-        const healthyContent = `
+        summaryText.textContent = "0 active alerts";
+
+        popupContent.innerHTML = `
             <div class="alert-popup-healthy">
                 <i class="bi bi-check-circle-fill"></i>
 
@@ -1063,11 +977,6 @@ function renderActiveAlerts(alerts) {
                 </p>
             </div>
         `;
-
-        targets.forEach(target => {
-            target.summary.textContent = "0 active alerts";
-            target.content.innerHTML = healthyContent;
-        });
 
         return;
     }
@@ -1082,12 +991,12 @@ function renderActiveAlerts(alerts) {
         )
     ).length;
 
-    const summary =
+    summaryText.textContent =
         `${alerts.length} active · ` +
         `${criticalCount} critical · ` +
         `${warningCount} warning`;
 
-    const alertContent = alerts.map(alert => {
+    popupContent.innerHTML = alerts.map(alert => {
         const severityClass = alertSeverityClass(
             alert.severity
         );
@@ -1126,11 +1035,6 @@ function renderActiveAlerts(alerts) {
             </div>
         `;
     }).join("");
-
-    targets.forEach(target => {
-        target.summary.textContent = summary;
-        target.content.innerHTML = alertContent;
-    });
 }
 
 
@@ -1138,30 +1042,22 @@ async function loadActiveAlerts() {
     const popupContent = document.getElementById(
         "active-alerts-popup-content"
     );
-    const pageContent = document.getElementById(
-        "active-alerts-page-content"
-    );
 
     const refreshButton = document.getElementById(
         "refresh-alerts-button"
     );
-    const pageRefreshButton = document.getElementById(
-        "refresh-alerts-page-button"
-    );
 
-    if (!popupContent && !pageContent) {
+    if (!popupContent) {
         return;
     }
 
-    [refreshButton, pageRefreshButton]
-        .filter(Boolean)
-        .forEach(button => {
-            button.disabled = true;
-            button.innerHTML = `
+    if (refreshButton) {
+        refreshButton.disabled = true;
+        refreshButton.innerHTML = `
             <span class="spinner-border spinner-border-sm me-1"></span>
             Loading
         `;
-        });
+    }
 
     try {
         const response = await fetch(
@@ -1185,30 +1081,20 @@ async function loadActiveAlerts() {
     } catch (error) {
         console.error("Active-alert loading error:", error);
 
-        const errorContent = `
+        popupContent.innerHTML = `
             <div class="alert alert-danger mb-0">
                 ${escapeHtml(error.message)}
             </div>
         `;
 
-        if (popupContent) {
-            popupContent.innerHTML = errorContent;
-        }
-
-        if (pageContent) {
-            pageContent.innerHTML = errorContent;
-        }
-
     } finally {
-        [refreshButton, pageRefreshButton]
-            .filter(Boolean)
-            .forEach(button => {
-                button.disabled = false;
-                button.innerHTML = `
+        if (refreshButton) {
+            refreshButton.disabled = false;
+            refreshButton.innerHTML = `
                 <i class="bi bi-arrow-clockwise"></i>
                 Refresh
             `;
-            });
+        }
     }
 }
 
@@ -1220,9 +1106,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const refreshAlertsButton = document.getElementById(
         "refresh-alerts-button"
-    );
-    const refreshAlertsPageButton = document.getElementById(
-        "refresh-alerts-page-button"
     );
 
     if (alertButton) {
@@ -1237,14 +1120,6 @@ document.addEventListener("DOMContentLoaded", () => {
             "click",
             loadActiveAlerts
         );
-    }
-
-    if (refreshAlertsPageButton) {
-        refreshAlertsPageButton.addEventListener(
-            "click",
-            loadActiveAlerts
-        );
-        loadActiveAlerts();
     }
 
     loadAlertSummary();
@@ -1495,266 +1370,10 @@ document.addEventListener("DOMContentLoaded", () => {
         );
     }
 
-    if (refreshServersButton) {
-        loadServers();
+    loadServers();
 
-        // Prometheus evaluates and scrapes every 15 seconds.
-        window.setInterval(loadServers, 15000);
-    }
-});
-
-
-/* =========================================================
-   PROMETHEUS ALERT RULES
-   ========================================================= */
-
-function prometheusRuleStateDetails(state) {
-    const normalized = String(state || "inactive").toLowerCase();
-    const states = {
-        inactive: {
-            label: "Normal",
-            className: "normal",
-            icon: "check-circle-fill"
-        },
-        pending: {
-            label: "Pending",
-            className: "pending",
-            icon: "hourglass-split"
-        },
-        firing: {
-            label: "Firing",
-            className: "firing",
-            icon: "exclamation-octagon-fill"
-        }
-    };
-
-    return states[normalized] || states.inactive;
-}
-
-
-function updatePrometheusRuleSummary(summary, prefix = "") {
-    const mapping = {
-        total: summary.total,
-        inactive: summary.inactive,
-        pending: summary.pending,
-        firing: summary.firing
-    };
-
-    Object.entries(mapping).forEach(([name, value]) => {
-        const element = document.getElementById(
-            `${prefix}rules-${name}`
-        );
-
-        if (element) {
-            element.textContent = value;
-        }
-    });
-}
-
-
-function renderPrometheusRuleDashboard(rules) {
-    const container = document.getElementById(
-        "prometheus-rules-dashboard"
-    );
-
-    if (!container) {
-        return;
-    }
-
-    container.innerHTML = rules.map(rule => {
-        const state = prometheusRuleStateDetails(rule.state);
-
-        return `
-            <a
-                href="/alerts"
-                class="rule-chip rule-chip-${state.className}"
-                title="${escapeHtml(rule.summary || rule.query)}"
-            >
-                <span class="rule-chip-icon">
-                    <i class="bi bi-${state.icon}"></i>
-                </span>
-                <span class="rule-chip-copy">
-                    <strong>${escapeHtml(rule.name)}</strong>
-                    <small>
-                        ${escapeHtml(rule.priority)} ·
-                        ${escapeHtml(rule.severity)}
-                    </small>
-                </span>
-                <span class="rule-chip-state">${state.label}</span>
-            </a>
-        `;
-    }).join("");
-}
-
-
-function renderPrometheusRulesPage(rules) {
-    const container = document.getElementById(
-        "prometheus-rules-list"
-    );
-
-    if (!container) {
-        return;
-    }
-
-    container.innerHTML = rules.map(rule => {
-        const state = prometheusRuleStateDetails(rule.state);
-        const healthClass = rule.health === "ok"
-            ? "text-success"
-            : "text-danger";
-
-        return `
-            <details class="prometheus-rule prometheus-rule-${state.className}">
-                <summary>
-                    <span class="prometheus-rule-name">
-                        <i class="bi bi-${state.icon}"></i>
-                        ${escapeHtml(rule.name)}
-                    </span>
-                    <span class="prometheus-rule-labels">
-                        <span class="badge text-bg-light">
-                            ${escapeHtml(rule.priority)}
-                        </span>
-                        <span class="badge text-bg-secondary">
-                            ${escapeHtml(rule.severity)}
-                        </span>
-                        <span class="rule-state rule-state-${state.className}">
-                            ${state.label}
-                        </span>
-                    </span>
-                </summary>
-                <div class="prometheus-rule-details">
-                    <div>
-                        <span>Expression</span>
-                        <code>${escapeHtml(rule.query)}</code>
-                    </div>
-                    <div>
-                        <span>For</span>
-                        <strong>${escapeHtml(rule.duration)}</strong>
-                    </div>
-                    <div>
-                        <span>Health</span>
-                        <strong class="${healthClass}">
-                            ${escapeHtml(rule.health)}
-                        </strong>
-                    </div>
-                    <div>
-                        <span>Active alerts</span>
-                        <strong>${escapeHtml(rule.active_alerts)}</strong>
-                    </div>
-                    <div>
-                        <span>Summary</span>
-                        <strong>${escapeHtml(rule.summary || "—")}</strong>
-                    </div>
-                    <div>
-                        <span>Rule group</span>
-                        <strong>${escapeHtml(rule.group)}</strong>
-                    </div>
-                </div>
-            </details>
-        `;
-    }).join("");
-}
-
-
-async function loadPrometheusRules() {
-    const dashboardContainer = document.getElementById(
-        "prometheus-rules-dashboard"
-    );
-    const pageContainer = document.getElementById(
-        "prometheus-rules-list"
-    );
-    const pageSummary = document.getElementById(
-        "prometheus-rules-page-summary"
-    );
-    const refreshButton = document.getElementById(
-        "refresh-prometheus-rules-button"
-    );
-    const dashboardMessage = document.getElementById(
-        "prometheus-rules-dashboard-message"
-    );
-    const pageMessage = document.getElementById(
-        "prometheus-rules-page-message"
-    );
-
-    if (!dashboardContainer && !pageContainer) {
-        return;
-    }
-
-    if (refreshButton) {
-        refreshButton.disabled = true;
-    }
-
-    [dashboardMessage, pageMessage]
-        .filter(Boolean)
-        .forEach(message => message.classList.add("d-none"));
-
-    try {
-        const response = await fetch(
-            "/api/prometheus/rules",
-            { cache: "no-store" }
-        );
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-            throw new Error(
-                result.message || "Unable to load Prometheus rules"
-            );
-        }
-
-        updatePrometheusRuleSummary(
-            result.summary,
-            "dashboard-"
-        );
-        updatePrometheusRuleSummary(result.summary);
-        renderPrometheusRuleDashboard(result.rules);
-        renderPrometheusRulesPage(result.rules);
-
-        if (pageSummary) {
-            pageSummary.textContent =
-                `${result.summary.total} configured · ` +
-                `${result.summary.firing} firing · ` +
-                `${result.summary.pending} pending`;
-        }
-
-    } catch (error) {
-        console.error("Prometheus rules error:", error);
-
-        [dashboardMessage, pageMessage]
-            .filter(Boolean)
-            .forEach(message => {
-                message.textContent = error.message;
-                message.classList.remove("d-none");
-            });
-
-    } finally {
-        if (refreshButton) {
-            refreshButton.disabled = false;
-        }
-    }
-}
-
-
-document.addEventListener("DOMContentLoaded", () => {
-    const dashboardContainer = document.getElementById(
-        "prometheus-rules-dashboard"
-    );
-    const pageContainer = document.getElementById(
-        "prometheus-rules-list"
-    );
-    const refreshButton = document.getElementById(
-        "refresh-prometheus-rules-button"
-    );
-
-    if (refreshButton) {
-        refreshButton.addEventListener(
-            "click",
-            loadPrometheusRules
-        );
-    }
-
-    if (dashboardContainer || pageContainer) {
-        loadPrometheusRules();
-        window.setInterval(loadPrometheusRules, 30000);
-    }
+    // Prometheus evaluates and scrapes every 15 seconds.
+    window.setInterval(loadServers, 15000);
 });
 
 
@@ -1824,14 +1443,9 @@ function renderSystemFlow(components) {
 }
 
 async function loadSystemFlow() {
-    const flow = document.getElementById("system-flow");
     const message = document.getElementById("system-flow-message");
     const overall = document.getElementById("system-flow-overall");
     const refreshButton = document.getElementById("refresh-system-flow-button");
-
-    if (!flow) {
-        return;
-    }
 
     if (refreshButton) refreshButton.disabled = true;
     if (message) message.classList.add("d-none");
@@ -1869,9 +1483,8 @@ async function loadSystemFlow() {
 
 document.addEventListener("DOMContentLoaded", () => {
     const refreshButton = document.getElementById("refresh-system-flow-button");
-    if (refreshButton) {
-        refreshButton.addEventListener("click", loadSystemFlow);
-        loadSystemFlow();
-        window.setInterval(loadSystemFlow, 15000);
-    }
+    if (refreshButton) refreshButton.addEventListener("click", loadSystemFlow);
+
+    loadSystemFlow();
+    window.setInterval(loadSystemFlow, 15000);
 });

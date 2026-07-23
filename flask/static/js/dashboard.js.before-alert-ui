@@ -1,8 +1,5 @@
 console.log("Incident Management Dashboard loaded");
 
-const canPerformActions =
-    document.body.dataset.canAct === "true";
-
 const containerTableBody = document.getElementById("container-table-body");
 const totalContainersElement = document.getElementById("total-containers");
 const runningContainersElement = document.getElementById("running-containers");
@@ -115,23 +112,6 @@ function actionButtons(container) {
     const encodedName = encodeURIComponent(container.name);
     const running = container.status === "running";
 
-    if (!canPerformActions) {
-        return `
-            <button class="btn btn-sm btn-outline-secondary" disabled>
-                <i class="bi bi-eye"></i>
-                Monitor only
-            </button>
-
-            <button
-                class="btn btn-sm btn-outline-dark"
-                onclick="viewContainerLogs('${encodedName}', '${name}')"
-            >
-                <i class="bi bi-terminal"></i>
-                Logs
-            </button>
-        `;
-    }
-
     if (!container.action_allowed) {
         return `
             <button class="btn btn-sm btn-outline-secondary" disabled>
@@ -205,6 +185,9 @@ function actionButtons(container) {
 async function loadContainers() {
     if (
         !containerTableBody ||
+        !totalContainersElement ||
+        !runningContainersElement ||
+        !stoppedContainersElement ||
         !refreshButton
     ) {
         return;
@@ -227,16 +210,9 @@ async function loadContainers() {
             throw new Error(result.message || "Unable to fetch containers");
         }
 
-        if (
-            totalContainersElement &&
-            runningContainersElement &&
-            stoppedContainersElement
-        ) {
-            totalContainersElement.textContent = result.total;
-            runningContainersElement.textContent = result.running;
-            stoppedContainersElement.textContent =
-                result.total - result.running;
-        }
+        totalContainersElement.textContent = result.total;
+        runningContainersElement.textContent = result.running;
+        stoppedContainersElement.textContent = result.total - result.running;
 
         if (!result.containers.length) {
             containerTableBody.innerHTML = `
@@ -1500,260 +1476,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Prometheus evaluates and scrapes every 15 seconds.
         window.setInterval(loadServers, 15000);
-    }
-});
-
-
-/* =========================================================
-   PROMETHEUS ALERT RULES
-   ========================================================= */
-
-function prometheusRuleStateDetails(state) {
-    const normalized = String(state || "inactive").toLowerCase();
-    const states = {
-        inactive: {
-            label: "Normal",
-            className: "normal",
-            icon: "check-circle-fill"
-        },
-        pending: {
-            label: "Pending",
-            className: "pending",
-            icon: "hourglass-split"
-        },
-        firing: {
-            label: "Firing",
-            className: "firing",
-            icon: "exclamation-octagon-fill"
-        }
-    };
-
-    return states[normalized] || states.inactive;
-}
-
-
-function updatePrometheusRuleSummary(summary, prefix = "") {
-    const mapping = {
-        total: summary.total,
-        inactive: summary.inactive,
-        pending: summary.pending,
-        firing: summary.firing
-    };
-
-    Object.entries(mapping).forEach(([name, value]) => {
-        const element = document.getElementById(
-            `${prefix}rules-${name}`
-        );
-
-        if (element) {
-            element.textContent = value;
-        }
-    });
-}
-
-
-function renderPrometheusRuleDashboard(rules) {
-    const container = document.getElementById(
-        "prometheus-rules-dashboard"
-    );
-
-    if (!container) {
-        return;
-    }
-
-    container.innerHTML = rules.map(rule => {
-        const state = prometheusRuleStateDetails(rule.state);
-
-        return `
-            <a
-                href="/alerts"
-                class="rule-chip rule-chip-${state.className}"
-                title="${escapeHtml(rule.summary || rule.query)}"
-            >
-                <span class="rule-chip-icon">
-                    <i class="bi bi-${state.icon}"></i>
-                </span>
-                <span class="rule-chip-copy">
-                    <strong>${escapeHtml(rule.name)}</strong>
-                    <small>
-                        ${escapeHtml(rule.priority)} ·
-                        ${escapeHtml(rule.severity)}
-                    </small>
-                </span>
-                <span class="rule-chip-state">${state.label}</span>
-            </a>
-        `;
-    }).join("");
-}
-
-
-function renderPrometheusRulesPage(rules) {
-    const container = document.getElementById(
-        "prometheus-rules-list"
-    );
-
-    if (!container) {
-        return;
-    }
-
-    container.innerHTML = rules.map(rule => {
-        const state = prometheusRuleStateDetails(rule.state);
-        const healthClass = rule.health === "ok"
-            ? "text-success"
-            : "text-danger";
-
-        return `
-            <details class="prometheus-rule prometheus-rule-${state.className}">
-                <summary>
-                    <span class="prometheus-rule-name">
-                        <i class="bi bi-${state.icon}"></i>
-                        ${escapeHtml(rule.name)}
-                    </span>
-                    <span class="prometheus-rule-labels">
-                        <span class="badge text-bg-light">
-                            ${escapeHtml(rule.priority)}
-                        </span>
-                        <span class="badge text-bg-secondary">
-                            ${escapeHtml(rule.severity)}
-                        </span>
-                        <span class="rule-state rule-state-${state.className}">
-                            ${state.label}
-                        </span>
-                    </span>
-                </summary>
-                <div class="prometheus-rule-details">
-                    <div>
-                        <span>Expression</span>
-                        <code>${escapeHtml(rule.query)}</code>
-                    </div>
-                    <div>
-                        <span>For</span>
-                        <strong>${escapeHtml(rule.duration)}</strong>
-                    </div>
-                    <div>
-                        <span>Health</span>
-                        <strong class="${healthClass}">
-                            ${escapeHtml(rule.health)}
-                        </strong>
-                    </div>
-                    <div>
-                        <span>Active alerts</span>
-                        <strong>${escapeHtml(rule.active_alerts)}</strong>
-                    </div>
-                    <div>
-                        <span>Summary</span>
-                        <strong>${escapeHtml(rule.summary || "—")}</strong>
-                    </div>
-                    <div>
-                        <span>Rule group</span>
-                        <strong>${escapeHtml(rule.group)}</strong>
-                    </div>
-                </div>
-            </details>
-        `;
-    }).join("");
-}
-
-
-async function loadPrometheusRules() {
-    const dashboardContainer = document.getElementById(
-        "prometheus-rules-dashboard"
-    );
-    const pageContainer = document.getElementById(
-        "prometheus-rules-list"
-    );
-    const pageSummary = document.getElementById(
-        "prometheus-rules-page-summary"
-    );
-    const refreshButton = document.getElementById(
-        "refresh-prometheus-rules-button"
-    );
-    const dashboardMessage = document.getElementById(
-        "prometheus-rules-dashboard-message"
-    );
-    const pageMessage = document.getElementById(
-        "prometheus-rules-page-message"
-    );
-
-    if (!dashboardContainer && !pageContainer) {
-        return;
-    }
-
-    if (refreshButton) {
-        refreshButton.disabled = true;
-    }
-
-    [dashboardMessage, pageMessage]
-        .filter(Boolean)
-        .forEach(message => message.classList.add("d-none"));
-
-    try {
-        const response = await fetch(
-            "/api/prometheus/rules",
-            { cache: "no-store" }
-        );
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-            throw new Error(
-                result.message || "Unable to load Prometheus rules"
-            );
-        }
-
-        updatePrometheusRuleSummary(
-            result.summary,
-            "dashboard-"
-        );
-        updatePrometheusRuleSummary(result.summary);
-        renderPrometheusRuleDashboard(result.rules);
-        renderPrometheusRulesPage(result.rules);
-
-        if (pageSummary) {
-            pageSummary.textContent =
-                `${result.summary.total} configured · ` +
-                `${result.summary.firing} firing · ` +
-                `${result.summary.pending} pending`;
-        }
-
-    } catch (error) {
-        console.error("Prometheus rules error:", error);
-
-        [dashboardMessage, pageMessage]
-            .filter(Boolean)
-            .forEach(message => {
-                message.textContent = error.message;
-                message.classList.remove("d-none");
-            });
-
-    } finally {
-        if (refreshButton) {
-            refreshButton.disabled = false;
-        }
-    }
-}
-
-
-document.addEventListener("DOMContentLoaded", () => {
-    const dashboardContainer = document.getElementById(
-        "prometheus-rules-dashboard"
-    );
-    const pageContainer = document.getElementById(
-        "prometheus-rules-list"
-    );
-    const refreshButton = document.getElementById(
-        "refresh-prometheus-rules-button"
-    );
-
-    if (refreshButton) {
-        refreshButton.addEventListener(
-            "click",
-            loadPrometheusRules
-        );
-    }
-
-    if (dashboardContainer || pageContainer) {
-        loadPrometheusRules();
-        window.setInterval(loadPrometheusRules, 30000);
     }
 });
 

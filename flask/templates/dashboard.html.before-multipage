@@ -18,11 +18,11 @@
 
     <link
         rel="stylesheet"
-        href="{{ url_for('static', filename='css/dashboard.css', v='12') }}"
+        href="{{ url_for('static', filename='css/dashboard.css', v='9') }}"
     >
 </head>
 
-<body data-can-act="{{ 'true' if current_user.role == 'action_user' else 'false' }}">
+<body>
 
 <div class="d-flex">
 
@@ -36,42 +36,37 @@
         </div>
 
         <nav class="nav flex-column">
-            <a class="nav-link {{ 'active' if active_page == 'dashboard' else '' }}" href="/dashboard">
+            <a class="nav-link active" href="/dashboard">
                 <i class="bi bi-grid"></i>
                 Dashboard
             </a>
 
-            <a class="nav-link {{ 'active' if active_page == 'system_flow' else '' }}" href="/system-flow">
-                <i class="bi bi-diagram-3"></i>
-                System Flow
-            </a>
-
-            <a class="nav-link {{ 'active' if active_page == 'alerts' else '' }}" href="/alerts">
+            <a class="nav-link" href="#">
                 <i class="bi bi-exclamation-triangle"></i>
-                Alerts
+                Incidents
             </a>
 
-            <a class="nav-link {{ 'active' if active_page == 'servers' else '' }}" href="/servers">
+            <a class="nav-link" href="#servers-section">
                 <i class="bi bi-server"></i>
                 Servers
             </a>
 
-            <a class="nav-link {{ 'active' if active_page == 'containers' else '' }}" href="/containers">
+            <a class="nav-link" href="#">
                 <i class="bi bi-box"></i>
                 Containers
             </a>
 
-            <a class="nav-link {{ 'active' if active_page == 'monitoring' else '' }}" href="/monitoring">
+            <a class="nav-link" href="#">
                 <i class="bi bi-graph-up"></i>
                 Monitoring
             </a>
 
-            <a class="nav-link {{ 'active' if active_page == 'tickets' else '' }}" href="/tickets">
+            <a class="nav-link" href="#">
                 <i class="bi bi-ticket-perforated"></i>
                 Tickets
             </a>
 
-            <a class="nav-link {{ 'active' if active_page == 'logs' else '' }}" href="/logs">
+            <a class="nav-link" href="#">
                 <i class="bi bi-terminal"></i>
                 Logs
             </a>
@@ -112,19 +107,12 @@
                 </button>
 
                 <div class="user-profile">
-                    <span class="user-avatar">
-                        {{ current_user.name.split()[0][0] }}{{ current_user.name.split()[-1][0] }}
-                    </span>
+                    <span class="user-avatar">RK</span>
                     <div class="user-copy">
-                        <strong>{{ current_user.name }}</strong>
-                        <small>{{ current_user.role_label }}</small>
+                        <strong>Rohit Kumar</strong>
+                        <small>Action User</small>
                     </div>
                 </div>
-                <form method="post" action="/logout" class="mb-0">
-                    <button type="submit" class="btn btn-sm btn-outline-secondary" title="Sign out">
-                        <i class="bi bi-box-arrow-right"></i>
-                    </button>
-                </form>
             </div>
         </header>
 
@@ -132,16 +120,15 @@
 
             <div class="dashboard-heading mb-4">
                 <div>
-                <span class="eyebrow">{{ page_eyebrow }}</span>
-                <h2>{{ page_title }}</h2>
+                <span class="eyebrow">OPERATIONS OVERVIEW</span>
+                <h2>Infrastructure at a glance</h2>
                 <p class="text-secondary mb-0">
-                    {{ page_description }}
+                    Live infrastructure monitoring and incident operations
                 </p>
                 </div>
                 <span class="last-updated"><i class="bi bi-broadcast"></i> Live data</span>
             </div>
 
-            {% if active_page == 'dashboard' %}
             <div class="row g-4 mb-4">
 
                 <div class="col-md-6 col-xl-3">
@@ -201,61 +188,7 @@
                 </div>
 
             </div>
-            {% endif %}
 
-            {% if active_page == 'dashboard' %}
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="mb-0"><span class="section-icon"><i class="bi bi-bell"></i></span> Prometheus Alert Overview</h5>
-                        <small class="text-secondary">
-                            Live status of configured infrastructure alert rules
-                        </small>
-                    </div>
-                    <a href="/alerts" class="btn btn-sm btn-outline-primary">
-                        View All Rules
-                        <i class="bi bi-arrow-right"></i>
-                    </a>
-                </div>
-                <div class="card-body">
-                    <div id="prometheus-rules-dashboard-message" class="alert alert-danger d-none"></div>
-                    <div class="row g-3 mb-4">
-                        <div class="col-6 col-xl-3">
-                            <div class="rule-summary rule-summary-total">
-                                <span>Configured</span>
-                                <strong id="dashboard-rules-total">0</strong>
-                            </div>
-                        </div>
-                        <div class="col-6 col-xl-3">
-                            <div class="rule-summary rule-summary-normal">
-                                <span>Normal</span>
-                                <strong id="dashboard-rules-inactive">0</strong>
-                            </div>
-                        </div>
-                        <div class="col-6 col-xl-3">
-                            <div class="rule-summary rule-summary-pending">
-                                <span>Pending</span>
-                                <strong id="dashboard-rules-pending">0</strong>
-                            </div>
-                        </div>
-                        <div class="col-6 col-xl-3">
-                            <div class="rule-summary rule-summary-firing">
-                                <span>Firing</span>
-                                <strong id="dashboard-rules-firing">0</strong>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="prometheus-rules-dashboard" class="rule-chip-grid">
-                        <div class="text-center py-3 text-secondary">
-                            <span class="spinner-border spinner-border-sm me-2"></span>
-                            Loading Prometheus alert rules...
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            {% if active_page == 'system_flow' %}
             <div class="card shadow-sm mb-4 system-flow-card" id="system-flow-section">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <div>
@@ -290,61 +223,7 @@
                     </div>
                 </div>
             </div>
-            {% endif %}
 
-            {% if active_page == 'alerts' %}
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="mb-0"><span class="section-icon"><i class="bi bi-bell"></i></span> Configured Prometheus Alerts</h5>
-                        <small id="prometheus-rules-page-summary" class="text-secondary">
-                            Checking Prometheus...
-                        </small>
-                    </div>
-                    <button type="button" class="btn btn-sm btn-outline-primary" id="refresh-prometheus-rules-button">
-                        <i class="bi bi-arrow-clockwise"></i>
-                        Refresh Rules
-                    </button>
-                </div>
-                <div class="card-body">
-                    <div id="prometheus-rules-page-message" class="alert alert-danger d-none"></div>
-                    <div class="row g-3 mb-4">
-                        <div class="col-6 col-xl-3">
-                            <div class="rule-summary rule-summary-total">
-                                <span>Configured</span>
-                                <strong id="rules-total">0</strong>
-                            </div>
-                        </div>
-                        <div class="col-6 col-xl-3">
-                            <div class="rule-summary rule-summary-normal">
-                                <span>Inactive/Normal</span>
-                                <strong id="rules-inactive">0</strong>
-                            </div>
-                        </div>
-                        <div class="col-6 col-xl-3">
-                            <div class="rule-summary rule-summary-pending">
-                                <span>Pending</span>
-                                <strong id="rules-pending">0</strong>
-                            </div>
-                        </div>
-                        <div class="col-6 col-xl-3">
-                            <div class="rule-summary rule-summary-firing">
-                                <span>Firing</span>
-                                <strong id="rules-firing">0</strong>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="prometheus-rules-list" class="prometheus-rules-list">
-                        <div class="text-center py-5 text-secondary">
-                        <div class="spinner-border spinner-border-sm me-2"></div>
-                            Loading configured Prometheus rules...
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            {% if active_page == 'servers' %}
             <div
                 class="card shadow-sm mb-4"
                 id="servers-section"
@@ -398,9 +277,7 @@
                     </div>
                 </div>
             </div>
-            {% endif %}
 
-            {% if active_page == 'monitoring' %}
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <div>
@@ -476,9 +353,7 @@
                     </div>
                 </div>
             </div>
-            {% endif %}
 
-            {% if active_page == 'containers' %}
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <div>
@@ -529,9 +404,7 @@
                     </div>
                 </div>
             </div>
-            {% endif %}
 
-            {% if active_page == 'tickets' %}
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <div>
@@ -584,9 +457,7 @@
                     </div>
                 </div>
             </div>
-            {% endif %}
 
-            {% if active_page == 'dashboard' %}
             <div class="card shadow-sm">
                 <div class="card-header bg-white">
                     <h5 class="mb-0"><span class="section-icon"><i class="bi bi-lightning-charge"></i></span> Quick Access</h5>
@@ -620,24 +491,6 @@
 
                 </div>
             </div>
-            {% endif %}
-
-            {% if active_page == 'logs' %}
-            <div class="card shadow-sm">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0"><span class="section-icon"><i class="bi bi-terminal"></i></span> Container Logs</h5>
-                </div>
-                <div class="card-body">
-                    <p class="text-secondary mb-3">
-                        Select a container from Container Management and use its Logs action.
-                    </p>
-                    <a href="/containers" class="btn btn-primary">
-                        <i class="bi bi-box"></i>
-                        Open Container Management
-                    </a>
-                </div>
-            </div>
-            {% endif %}
 
         </div>
     </main>
@@ -744,7 +597,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<script src="{{ url_for('static', filename='js/dashboard.js', v='12') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js', v='9') }}"></script>
 
 </body>
 </html>

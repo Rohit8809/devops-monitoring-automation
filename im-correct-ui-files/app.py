@@ -1,14 +1,5 @@
 from datetime import datetime
-from flask import (
-    Flask,
-    request,
-    jsonify,
-    render_template,
-    redirect,
-    url_for,
-    session
-)
-from werkzeug.security import check_password_hash
+from flask import Flask, request, jsonify, render_template
 import requests
 import json
 from dotenv import load_dotenv
@@ -36,12 +27,6 @@ from decision_engine import (
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv(
-    "FLASK_SECRET_KEY",
-    "development-only-change-this-secret"
-)
-app.config["SESSION_COOKIE_HTTPONLY"] = True
-app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
 # Disable browser caching while developing the dashboard.
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
@@ -60,79 +45,6 @@ OSTICKET_URL = os.getenv("OSTICKET_URL")
 API_KEY = os.getenv("API_KEY")
 SENDER_EMAIL = os.getenv("SENDER_EMAIL")
 SOURCE_IP = os.getenv("SOURCE_IP")
-
-USERS = {
-    "rohit": {
-        "name": "Rohit Kumar",
-        "role": "action_user",
-        "role_label": "Action User",
-        "password_hash": os.getenv("ROHIT_PASSWORD_HASH", "")
-    },
-    "kriti": {
-        "name": "Kriti Thakur",
-        "role": "monitoring_user",
-        "role_label": "Monitoring User",
-        "password_hash": os.getenv("KRITI_PASSWORD_HASH", "")
-    }
-}
-
-
-@app.before_request
-def require_dashboard_login():
-    """Require a signed-in user for dashboard pages and APIs."""
-    public_endpoints = {
-        "login",
-        "static",
-        "webhook",
-        "home"
-    }
-
-    if request.endpoint in public_endpoints:
-        return None
-
-    if "username" not in session:
-        if request.path.startswith("/api/"):
-            return jsonify({
-                "success": False,
-                "message": "Authentication required"
-            }), 401
-
-        return redirect(url_for("login"))
-
-    return None
-
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if session.get("username"):
-        return redirect(url_for("dashboard"))
-
-    error = None
-
-    if request.method == "POST":
-        username = request.form.get("username", "").strip().lower()
-        password = request.form.get("password", "")
-        user = USERS.get(username)
-
-        if not user or not user["password_hash"]:
-            error = "Invalid username or password"
-        elif not check_password_hash(user["password_hash"], password):
-            error = "Invalid username or password"
-        else:
-            session.clear()
-            session["username"] = username
-            session["name"] = user["name"]
-            session["role"] = user["role"]
-            session["role_label"] = user["role_label"]
-            return redirect(url_for("dashboard"))
-
-    return render_template("login.html", error=error)
-
-
-@app.route('/logout', methods=['POST'])
-def logout():
-    session.clear()
-    return redirect(url_for("login"))
 
 
 @app.route('/webhook', methods=['POST'])
@@ -537,14 +449,6 @@ def get_containers():
 )
 def control_container(container_name, action):
     """Start, stop or restart an approved Docker container."""
-
-    if session.get("role") != "action_user":
-        return jsonify({
-            "success": False,
-            "message": (
-                "Action denied. Monitoring users have read-only access."
-            )
-        }), 403
 
     allowed_actions = {"start", "stop", "restart"}
 
@@ -1116,113 +1020,6 @@ ALERTMANAGER_URL = os.getenv(
 )
 
 
-@app.route('/api/prometheus/rules', methods=['GET'])
-def get_prometheus_rules():
-    """Return configured Prometheus alert rules and live states."""
-    try:
-        response = requests.get(
-            f"{PROMETHEUS_URL}/api/v1/rules",
-            params={"type": "alert"},
-            timeout=10
-        )
-        response.raise_for_status()
-        prometheus_data = response.json()
-
-        if prometheus_data.get("status") != "success":
-            return jsonify({
-                "success": False,
-                "message": "Prometheus returned an unsuccessful rules response"
-            }), 502
-
-        rules = []
-
-        for group in prometheus_data.get("data", {}).get("groups", []):
-            group_name = group.get("name", "unknown")
-            source_file = group.get("file", "unknown")
-
-            for rule in group.get("rules", []):
-                if rule.get("type") != "alerting":
-                    continue
-
-                alert_states = {
-                    str(alert.get("state", "")).lower()
-                    for alert in rule.get("alerts", [])
-                }
-
-                if "firing" in alert_states:
-                    state = "firing"
-                elif "pending" in alert_states:
-                    state = "pending"
-                else:
-                    state = "inactive"
-
-                rules.append({
-                    "name": rule.get("name", "UnknownRule"),
-                    "group": group_name,
-                    "file": source_file,
-                    "query": rule.get("query", ""),
-                    "duration": rule.get("duration", "0s"),
-                    "health": rule.get("health", "unknown"),
-                    "last_error": rule.get("lastError") or None,
-                    "last_evaluation": rule.get("lastEvaluation"),
-                    "evaluation_time": rule.get("evaluationTime"),
-                    "state": state,
-                    "active_alerts": len(rule.get("alerts", [])),
-                    "severity": rule.get("labels", {}).get(
-                        "severity",
-                        "unknown"
-                    ),
-                    "priority": rule.get("labels", {}).get(
-                        "priority",
-                        "unassigned"
-                    ),
-                    "summary": rule.get("annotations", {}).get(
-                        "summary",
-                        ""
-                    ),
-                    "description": rule.get("annotations", {}).get(
-                        "description",
-                        ""
-                    )
-                })
-
-        summary = {
-            "total": len(rules),
-            "inactive": sum(
-                1 for rule in rules if rule["state"] == "inactive"
-            ),
-            "pending": sum(
-                1 for rule in rules if rule["state"] == "pending"
-            ),
-            "firing": sum(
-                1 for rule in rules if rule["state"] == "firing"
-            ),
-            "unhealthy": sum(
-                1 for rule in rules if rule["health"] != "ok"
-            )
-        }
-
-        return jsonify({
-            "success": True,
-            "summary": summary,
-            "rules": rules
-        }), 200
-
-    except requests.RequestException as error:
-        return jsonify({
-            "success": False,
-            "message": "Unable to retrieve alert rules from Prometheus",
-            "error": str(error)
-        }), 502
-
-    except Exception as error:
-        return jsonify({
-            "success": False,
-            "message": "Unexpected Prometheus rules error",
-            "error": str(error)
-        }), 500
-
-
 @app.route('/api/alerts', methods=['GET'])
 def get_active_alerts():
     """Return active alerts directly from Alertmanager."""
@@ -1328,111 +1125,9 @@ def get_alert_summary():
 
 
 
-PAGE_CONFIG = {
-    "dashboard": {
-        "eyebrow": "OPERATIONS OVERVIEW",
-        "title": "Infrastructure at a glance",
-        "description": "Live infrastructure monitoring and incident operations"
-    },
-    "system_flow": {
-        "eyebrow": "SERVICE TOPOLOGY",
-        "title": "Live Incident Workflow",
-        "description": "End-to-end health from infrastructure detection to customer notification"
-    },
-    "alerts": {
-        "eyebrow": "PROMETHEUS RULES",
-        "title": "Alert Configuration",
-        "description": "Live alert rules, health and evaluation state from Prometheus"
-    },
-    "servers": {
-        "eyebrow": "INFRASTRUCTURE",
-        "title": "Server Health",
-        "description": "Live health fetched directly from Prometheus"
-    },
-    "containers": {
-        "eyebrow": "DOCKER OPERATIONS",
-        "title": "Container Management",
-        "description": "Live container status and operational actions"
-    },
-    "monitoring": {
-        "eyebrow": "PROMETHEUS METRICS",
-        "title": "Infrastructure Monitoring",
-        "description": "One-hour CPU utilisation from monitored servers"
-    },
-    "tickets": {
-        "eyebrow": "INCIDENT RECORDS",
-        "title": "Support Tickets",
-        "description": "Live incidents fetched directly from osTicket"
-    },
-    "logs": {
-        "eyebrow": "CONTAINER DIAGNOSTICS",
-        "title": "Container Logs",
-        "description": "Access runtime logs through container operations"
-    }
-}
-
-
-def render_operations_page(active_page):
-    """Render one existing dashboard section as a dedicated page."""
-    page = PAGE_CONFIG[active_page]
-    return render_template(
-        'dashboard.html',
-        active_page=active_page,
-        page_eyebrow=page["eyebrow"],
-        page_title=page["title"],
-        page_description=page["description"],
-        current_user={
-            "username": session["username"],
-            "name": session["name"],
-            "role": session["role"],
-            "role_label": session["role_label"]
-        }
-    )
-
-
 @app.route('/dashboard')
 def dashboard():
-    return render_operations_page("dashboard")
-
-
-@app.route('/system-flow')
-def system_flow_page():
-    return render_operations_page("system_flow")
-
-
-@app.route('/incidents')
-def incidents_page():
-    return render_operations_page("alerts")
-
-
-@app.route('/alerts')
-def alerts_page():
-    return render_operations_page("alerts")
-
-
-@app.route('/servers')
-def servers_page():
-    return render_operations_page("servers")
-
-
-@app.route('/containers')
-def containers_page():
-    return render_operations_page("containers")
-
-
-@app.route('/monitoring')
-def monitoring_page():
-    return render_operations_page("monitoring")
-
-
-@app.route('/tickets')
-def tickets_page():
-    return render_operations_page("tickets")
-
-
-@app.route('/logs')
-def logs_page():
-    return render_operations_page("logs")
+    return render_template('dashboard.html')
 
 
 @app.route('/')
